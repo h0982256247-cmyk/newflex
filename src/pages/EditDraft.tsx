@@ -86,9 +86,15 @@ export default function EditDraft() {
 
       <div className="mx-auto max-w-5xl px-4 pt-4">
         <div className="glass-panel p-4 flex items-center justify-between">
-          <div>
-            <div className="text-lg font-semibold">編輯草稿</div>
-            <div className="text-sm opacity-70">同頁 Accordion · 儲存：{saveState === "saving" ? "●" : "✓"}</div>
+          <div className="flex-1 mr-4">
+            <input
+              type="text"
+              value={doc.title}
+              onChange={(e) => scheduleSave({ ...doc, title: e.target.value })}
+              placeholder="輸入草稿標題"
+              className="text-lg font-semibold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none w-full max-w-md"
+            />
+            <div className="text-sm opacity-70">儲存：{saveState === "saving" ? "●" : saveState === "saved" ? "✓" : saveState === "error" ? "✗" : "—"}</div>
           </div>
           <div className="flex gap-2">
             <button className="glass-btn glass-btn--secondary" onClick={async () => {

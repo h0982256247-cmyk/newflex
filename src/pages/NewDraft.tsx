@@ -18,7 +18,8 @@ export default function NewDraft() {
         const rows = await listTemplates();
         setTpls(rows);
       } catch (e: any) {
-        setErr(e?.message || String(e));
+        // 忽略 templates 表不存在的錯誤，讓內建範本仍可使用
+        console.warn("Templates load failed:", e?.message);
       }
     })();
   }, [nav]);
@@ -35,7 +36,7 @@ export default function NewDraft() {
     setLoading(true);
     try {
       const id = await createDoc(doc);
-      nav(`/edit/${id}`);
+      nav(`/drafts/${id}/edit`);
     } catch (e: any) {
       setErr(e?.message || String(e));
     } finally {

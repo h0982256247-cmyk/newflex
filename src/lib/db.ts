@@ -39,6 +39,12 @@ export async function saveDoc(id: string, doc: DocModel): Promise<ValidationRepo
   return rep;
 }
 
+export async function deleteDoc(id: string) {
+  const user = await requireUser();
+  const { error } = await supabase.from("docs").delete().eq("id", id).eq("owner_id", user.id);
+  if (error) throw error;
+}
+
 export async function publishDoc(id: string) {
   const user = await requireUser();
   const row = await getDoc(id);

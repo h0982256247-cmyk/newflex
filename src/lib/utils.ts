@@ -13,5 +13,6 @@ export function autoTextColor(bgHex: string): string {
   return lum > 0.6 ? "#111111" : "#FFFFFF";
 }
 export function safeUrlProtocol(u: string): boolean {
-  return /^https:\/\//i.test(u) || /^line:\/\//i.test(u) || /^liff:\/\//i.test(u);
+  // LINE Flex Message 支援的 URI 協定
+  return /^https?:\/\//i.test(u) || /^line:\/\//i.test(u) || /^liff:\/\//i.test(u) || /^tel:/i.test(u) || /^mailto:/i.test(u);
 }

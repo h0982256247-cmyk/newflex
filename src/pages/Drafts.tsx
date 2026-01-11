@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { listDocs } from "@/lib/db";
+import { listDocs, deleteDoc } from "@/lib/db";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 
@@ -7,6 +7,7 @@ export default function Drafts() {
   const nav = useNavigate();
   const [rows, setRows] = useState<any[]>([]);
   const [err, setErr] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -19,6 +20,20 @@ export default function Drafts() {
       }
     })();
   }, [nav]);
+
+  async function handleDelete(id: string, title: string) {
+    if (!confirm(`確定要刪除「${title}」嗎？此操作無法復原。`)) return;
+    setDeleting(id);
+    setErr(null);
+    try {
+      await deleteDoc(id);
+      setRows(await listDocs());
+    } catch (e: any) {
+      setErr(e.message || "刪除失敗");
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   return (
     <div className="glass-bg">
@@ -49,6 +64,14 @@ export default function Drafts() {
               <div className="mt-3 flex gap-2">
                 <button className="glass-btn" onClick={() => nav(`/drafts/${r.id}/edit`)}>編輯</button>
                 <button className="glass-btn glass-btn--secondary" onClick={() => nav(`/drafts/${r.id}/preview`)}>預覽</button>
+                <button
+                  className="glass-btn glass-btn--secondary"
+                  style={{ color: "#ff3b30" }}
+                  disabled={deleting === r.id}
+                  onClick={() => handleDelete(r.id, r.title)}
+                >
+                  {deleting === r.id ? "刪除中…" : "刪除"}
+                </button>
               </div>
             </div>
           ))}
