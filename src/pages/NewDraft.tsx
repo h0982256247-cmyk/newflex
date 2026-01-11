@@ -60,53 +60,54 @@ export default function NewDraft() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0b1220] via-[#121c2e] to-[#0b1220] text-white">
-      <div className="max-w-5xl mx-auto px-5 py-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">新增草稿</h1>
+    <div className="glass-bg">
+      <div className="mx-auto max-w-5xl px-4 py-6">
+        <div className="glass-panel p-4 flex items-center justify-between">
+          <div>
+            <div className="text-xl font-semibold">新增草稿</div>
+            <div className="text-sm opacity-70">選一個範本開始，之後再到編輯頁調整內容與排版。</div>
+          </div>
           <button className="glass-btn glass-btn--secondary" onClick={() => nav("/drafts")}>
             返回列表
           </button>
         </div>
 
-        <p className="text-white/70 mt-2">選一個範本開始，之後再到編輯頁調整內容與排版。</p>
-
         {err ? (
-          <div className="mt-4 glass-card border border-red-500/40 bg-red-500/10 p-4 text-sm whitespace-pre-wrap">
+          <div className="mt-4 glass-panel p-4 text-red-600 text-sm whitespace-pre-wrap">
             {err}
           </div>
         ) : null}
 
         <div className="mt-6">
-          <h2 className="text-sm text-white/70 mb-3">內建快速開始</h2>
+          <div className="text-sm opacity-70 mb-3">內建快速開始</div>
           <div className="grid md:grid-cols-2 gap-4">
             {builtinQuick.map((b) => (
               <button
                 key={b.key}
-                className="glass-card p-5 text-left hover:brightness-110 transition disabled:opacity-60"
+                className="glass-panel p-5 text-left hover:brightness-110 transition disabled:opacity-60"
                 disabled={loading}
                 onClick={() => createFromDoc(b.doc)}
               >
                 <div className="font-semibold">{b.name}</div>
-                <div className="text-sm text-white/70 mt-1">{b.description}</div>
-                <div className="text-xs text-white/50 mt-3">點擊建立</div>
+                <div className="text-sm opacity-70 mt-1">{b.description}</div>
+                <div className="text-xs opacity-50 mt-3">點擊建立</div>
               </button>
             ))}
           </div>
         </div>
 
         <div className="mt-8">
-          <h2 className="text-sm text-white/70 mb-3">範本庫</h2>
+          <div className="text-sm opacity-70 mb-3">範本庫</div>
           {tpls.length === 0 ? (
-            <div className="glass-card p-5 text-white/70">目前沒有範本。你可以先建立草稿後，在編輯頁「另存為範本」。</div>
+            <div className="glass-panel p-5 opacity-80">目前沒有範本。你可以先建立草稿後，在編輯頁「另存為範本」。</div>
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
               {tpls.map((t) => (
-                <div key={t.id} className="glass-card p-5">
+                <div key={t.id} className="glass-panel p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="font-semibold truncate">{t.name}</div>
-                      <div className="text-sm text-white/70 mt-1 whitespace-pre-wrap">
+                      <div className="text-sm opacity-70 mt-1 whitespace-pre-wrap">
                         {t.description || (t.is_public ? "內建範本" : "我的範本")}
                       </div>
                     </div>
@@ -121,7 +122,7 @@ export default function NewDraft() {
                         刪除
                       </button>
                     ) : (
-                      <span className="text-xs text-white/50 shrink-0 mt-1">內建</span>
+                      <span className="glass-badge shrink-0">內建</span>
                     )}
                   </div>
 
