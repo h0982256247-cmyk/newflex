@@ -1,7 +1,7 @@
 {
   "name": "flex-glass-editor",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"node server.js --dev\" \"vite\"",

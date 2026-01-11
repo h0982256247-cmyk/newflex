@@ -7,10 +7,13 @@ import { isLineInApp } from "@/lib/lineEnv";
 
 type UrlParams = { token: string | null; id: string | null };
 
-function parseUrlParams(): UrlParams {
+type FullUrlParams = { token: string | null; id: string | null; autoshare: boolean };
+
+function parseUrlParams(): FullUrlParams {
   const sp = new URLSearchParams(window.location.search);
   let token = sp.get("token");
   let id = sp.get("id");
+  let autoshare = sp.get("autoshare") === "1";
 
   // LIFF 可能會把參數包在 liff.state
   if (!token && !id) {
@@ -21,20 +24,23 @@ function parseUrlParams(): UrlParams {
       const inner = new URLSearchParams(q);
       token = inner.get("token");
       id = inner.get("id");
+      autoshare = inner.get("autoshare") === "1";
     }
   }
-  return { token, id };
+  return { token, id, autoshare };
 }
 
 type Toast = { type: "ok" | "err"; msg: string } | null;
 
 export default function Share() {
-  const { token: tokenParam, id: idParam } = useMemo(() => parseUrlParams(), []);
+  const { token: tokenParam, id: idParam, autoshare } = useMemo(() => parseUrlParams(), []);
   const [loading, setLoading] = useState(true);
   const [docModel, setDocModel] = useState<any>(null);
   const [flexJson, setFlexJson] = useState<any>(null);
   const [toast, setToast] = useState<Toast>(null);
   const [sharing, setSharing] = useState(false);
+  const [liffReady, setLiffReady] = useState(false);
+  const autoShareTriggered = useRef(false);
 
   const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
 
@@ -53,6 +59,24 @@ export default function Share() {
 
   const previewRef = useRef<HTMLDivElement | null>(null);
 
+  // 初始化 LIFF
+  useEffect(() => {
+    (async () => {
+      if (!liffId) {
+        console.warn("[Share] VITE_LIFF_ID not set");
+        return;
+      }
+      try {
+        await liff.init({ liffId });
+        setLiffReady(true);
+        console.log("[Share] LIFF initialized, isInClient:", liff.isInClient());
+      } catch (e: any) {
+        console.error("[Share] LIFF init error:", e);
+      }
+    })();
+  }, [liffId]);
+
+  // 載入分享資料
   useEffect(() => {
     (async () => {
       try {
@@ -78,49 +102,72 @@ export default function Share() {
     })();
   }, [tokenParam, idParam]);
 
+  // autoshare: 自動觸發分享
+  useEffect(() => {
+    if (autoshare && liffReady && flexJson?.contents && !autoShareTriggered.current && !loading) {
+      autoShareTriggered.current = true;
+      // 延遲一點確保 UI 渲染完成
+      setTimeout(() => {
+        triggerShare();
+      }, 500);
+    }
+  }, [autoshare, liffReady, flexJson, loading]);
+
   const contents = flexJson?.contents ?? null;
   const altText = flexJson?.altText ?? (docModel?.title || "Flex Message");
 
-  async function ensureLiffReady() {
-    if (!liffId) throw new Error("缺少 VITE_LIFF_ID");
-    // init 可重複呼叫（若已 init 不會壞）
-    await liff.init({ liffId });
-  }
-
-  async function onPrimaryClick() {
-    setToast(null);
-
-    // 不在 LINE in-app：同一顆按鈕直接導去 LIFF（文字不變）
-    if (!isLineInApp()) {
-      if (!liffUrl) {
-        setToast({ type: "err", msg: "尚未設定 LIFF（缺少 VITE_LIFF_ID）" });
-        return;
-      }
-      window.location.href = liffUrl;
+  async function triggerShare() {
+    if (!contents) {
+      setToast({ type: "err", msg: "此內容尚未準備好（沒有 flex contents）" });
       return;
     }
 
-    // 在 LINE in-app：點擊觸發 shareTargetPicker
     try {
-      if (!contents) throw new Error("此內容尚未準備好（沒有 flex contents）");
       setSharing(true);
-      await ensureLiffReady();
+      setToast(null);
 
-      if (!liff.isApiAvailable("shareTargetPicker")) {
-        throw new Error("目前 LINE 版本不支援分享好友（shareTargetPicker）。請更新 LINE 後再試。");
+      // 檢查是否在 LIFF 環境
+      if (!liff.isInClient()) {
+        // 不在 LINE 內，導向 LIFF URL
+        if (liffUrl) {
+          window.location.href = liffUrl;
+        } else {
+          setToast({ type: "err", msg: "尚未設定 LIFF（缺少 VITE_LIFF_ID）" });
+        }
+        return;
       }
 
+      // 確保 LIFF 已初始化
+      if (!liffReady) {
+        if (!liffId) throw new Error("缺少 VITE_LIFF_ID");
+        await liff.init({ liffId });
+      }
+
+      // 檢查 API 可用性
+      if (!liff.isApiAvailable("shareTargetPicker")) {
+        throw new Error("目前 LINE 版本不支援分享好友（shareTargetPicker）。請更新 LINE App 後再試。");
+      }
+
+      console.log("[Share] Calling shareTargetPicker with:", { altText, contents });
+
       const res = await liff.shareTargetPicker([{ type: "flex", altText, contents }]);
-      if (res === null) {
+
+      if (res === undefined) {
+        // 使用者取消或關閉
         setToast({ type: "err", msg: "已取消分享" });
-      } else {
+      } else if (res) {
         setToast({ type: "ok", msg: "已傳送成功！" });
       }
     } catch (e: any) {
+      console.error("[Share] Error:", e);
       setToast({ type: "err", msg: e?.message || String(e) });
     } finally {
       setSharing(false);
     }
+  }
+
+  async function onPrimaryClick() {
+    await triggerShare();
   }
 
   return (
