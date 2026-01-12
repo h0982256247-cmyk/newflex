@@ -14,6 +14,11 @@ export default function FlexPreview({ doc, flex }: { doc?: DocModel; flex?: any 
   // Handle Flex Message Wrapper
   const root = content.type === "flex" ? content.contents : content;
 
+  // 防止 root 為 null 或 undefined
+  if (!root || !root.type) {
+    return <div className="text-sm text-gray-500">無法解析 Flex 內容</div>;
+  }
+
   if (root.type === "carousel") {
     return (
       <div className="flex gap-3 overflow-x-auto pb-4 snap-x">
