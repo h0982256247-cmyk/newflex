@@ -82,7 +82,7 @@ function sectionToBubble(section: Section, docId?: string) {
           { type: "text", text: c.value, size: "sm", color: "#111111", flex: 5, wrap: true },
         ],
       };
-      if (c.action) row.contents[1].action = actionToFlex(c.action, undefined, docId);
+      if (c.action) row.action = actionToFlex(c.action, undefined, docId);
       bodyContents.push(row);
     }
 
