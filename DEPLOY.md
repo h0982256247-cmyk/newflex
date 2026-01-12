@@ -45,11 +45,20 @@ This guide covers how to set up the database on [Supabase](https://supabase.com)
     *   Select this repository.
     *   Zeabur should automatically detect the configuration from `zeabur.json`.
 4.  **Configure Environment Variables** (Critical Step):
-    *   Before the deployment finishes (or right after), go to **Settings** > **Environment Variables**.
+    *   **BEFORE** starting the deployment, go to **Settings** > **Environment Variables**.
     *   Add the following variables using the values from Supabase:
         *   `VITE_SUPABASE_URL`: Your Supabase Project URL
         *   `VITE_SUPABASE_ANON_KEY`: Your Supabase Anon Key
-    *   *Note*: Since this is a Vite app, these variables are needed at **Build Time**. If the initial build failed or didn't pick them up, click **Redeploy** in Zeabur after saving the variables.
+    *   **IMPORTANT**: Since this is a Vite app, these variables are needed at **Build Time**.
+    *   If the initial build failed or didn't pick them up:
+        1. Verify the environment variables are set correctly
+        2. Click **Redeploy** in Zeabur
+        3. Check the build logs for any errors
+
+### Deployment Improvements (v1.0.5+)
+*   **Docker**: Optimized Dockerfile now installs only production dependencies in runtime
+*   **Build**: Changed from `npm install` to `npm ci` for more reliable builds
+*   **.dockerignore**: Added to reduce image size and improve build speed
 
 ## 3. Verification
 

@@ -1,6 +1,9 @@
 {
     "serviceName": "flex-glass-editor",
-    "buildCommand": "npm install && npm run build",
+    "buildCommand": "npm ci && npm run build",
     "startCommand": "node server.js",
-    "outputDirectory": "dist"
+    "outputDirectory": "dist",
+    "env": {
+        "NODE_ENV": "production"
+    }
 }
