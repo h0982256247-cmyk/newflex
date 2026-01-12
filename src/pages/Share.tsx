@@ -193,16 +193,21 @@ export default function Share() {
   }
 
   async function triggerShare() {
-    try {
-      setSharing(true);
-      setToast(null);
+  try {
+    setSharing(true);
+    setToast(null);
 
-      // 不在 LINE in-app
-      if (!liff.isInClient()) {
-        if (!liff.isLoggedIn()) {
-          liff.login({ redirectUri: window.location.href });
-          return;
-        }
+    // ✅ 不在 LINE 的 LIFF in-client：直接導向 LIFF（不要 login）
+    if (!liff.isInClient()) {
+      if (!liffUrl) throw new Error("尚未設定 LIFF（缺少 VITE_LIFF_ID）");
+
+      // 帶 autoshare=1，進 LIFF 後自動觸發
+      const u = new URL(liffUrl);
+      u.searchParams.set("autoshare", "1");
+      window.location.href = u.toString();
+      return;
+    }
+
         // 已登入則繼續執行 shareTargetPicker
       }
 
