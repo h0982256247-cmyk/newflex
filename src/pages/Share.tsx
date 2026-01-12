@@ -17,27 +17,46 @@ function parseUrlParams(): FullUrlParams {
   if (!token && !id) {
     const liffState = sp.get("liff.state");
     if (liffState) {
-      const decoded = decodeURIComponent(liffState);
-      const q = decoded.includes("?")
-        ? decoded.split("?")[1]
-        : decoded.startsWith("?")
-          ? decoded.slice(1)
-          : decoded;
+      try {
+        const decoded = decodeURIComponent(liffState);
+        // liff.state 可能是 "?token=xxx" 或 "token=xxx" 或 "/share?token=xxx"
+        let queryPart = decoded;
+        if (decoded.includes("?")) {
+          queryPart = decoded.split("?").pop() || "";
+        } else if (decoded.startsWith("/")) {
+          // 路徑格式，沒有參數
+          queryPart = "";
+        }
 
-      const inner = new URLSearchParams(q);
-      token = inner.get("token");
-      id = inner.get("id");
-      autoshare = inner.get("autoshare") === "1";
+        const inner = new URLSearchParams(queryPart);
+        token = inner.get("token") || token;
+        id = inner.get("id") || id;
+        autoshare = inner.get("autoshare") === "1" || autoshare;
+      } catch (e) {
+        console.error("[parseUrlParams] Failed to parse liff.state:", e);
+      }
     }
   }
 
+  // 額外嘗試從 hash 解析（某些 LIFF 版本會用 hash）
+  if (!token && !id && window.location.hash) {
+    try {
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      token = hashParams.get("token") || token;
+      id = hashParams.get("id") || id;
+    } catch (e) {
+      console.error("[parseUrlParams] Failed to parse hash:", e);
+    }
+  }
+
+  console.log("[parseUrlParams] Resolved:", { token, id, autoshare });
   return { token, id, autoshare };
 }
 
 type Toast = { type: "ok" | "err"; msg: string } | null;
 
 export default function Share() {
-  const { token: tokenParam, id: idParam, autoshare } = useMemo(() => parseUrlParams(), []);
+  const [urlParams, setUrlParams] = useState<FullUrlParams>({ token: null, id: null, autoshare: false });
   const [loading, setLoading] = useState(true);
   const [docModel, setDocModel] = useState<any>(null);
   const [flexJson, setFlexJson] = useState<any>(null);
@@ -45,9 +64,14 @@ export default function Share() {
   const [sharing, setSharing] = useState(false);
 
   const [liffReady, setLiffReady] = useState(false);
+  const [paramsReady, setParamsReady] = useState(false);
   const autoShareTriggered = useRef(false);
 
   const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
+
+  const tokenParam = urlParams.token;
+  const idParam = urlParams.id;
+  const autoshare = urlParams.autoshare;
 
   const shareUrl = useMemo(() => {
     const base = `${window.location.origin}${window.location.pathname}`;
@@ -68,25 +92,42 @@ export default function Share() {
 
   const previewRef = useRef<HTMLDivElement | null>(null);
 
-  // 初始化 LIFF
+  // 初始化 LIFF 並解析 URL 參數
   useEffect(() => {
     (async () => {
+      // 先嘗試解析 URL 參數（非 LIFF 環境可能直接有參數）
+      const initialParams = parseUrlParams();
+
       if (!liffId) {
         console.warn("[Share] VITE_LIFF_ID not set");
+        setUrlParams(initialParams);
+        setParamsReady(true);
         return;
       }
+
       try {
         await liff.init({ liffId });
         setLiffReady(true);
         console.log("[Share] LIFF initialized, isInClient:", liff.isInClient());
+
+        // LIFF 初始化後重新解析參數（可能從 liff.state 取得）
+        const params = parseUrlParams();
+        console.log("[Share] After LIFF init, params:", params);
+        setUrlParams(params);
+        setParamsReady(true);
       } catch (e: any) {
         console.error("[Share] LIFF init error:", e);
+        // 即使 LIFF 初始化失敗，也嘗試使用初始參數
+        setUrlParams(initialParams);
+        setParamsReady(true);
       }
     })();
   }, [liffId]);
 
-  // 載入分享資料
+  // 載入分享資料（等待參數解析完成）
   useEffect(() => {
+    if (!paramsReady) return;
+
     (async () => {
       try {
         setLoading(true);
@@ -109,7 +150,7 @@ export default function Share() {
         setLoading(false);
       }
     })();
-  }, [tokenParam, idParam]);
+  }, [paramsReady, tokenParam, idParam]);
 
   const contents = flexJson?.contents ?? null;
   const altText = flexJson?.altText ?? (docModel?.title || "Flex Message");
