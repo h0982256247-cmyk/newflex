@@ -193,22 +193,19 @@ export default function Share() {
   }
 
   async function triggerShare() {
-  try {
-    setSharing(true);
-    setToast(null);
+    try {
+      setSharing(true);
+      setToast(null);
 
-    // ✅ 不在 LINE 的 LIFF in-client：直接導向 LIFF（不要 login）
-    if (!liff.isInClient()) {
-      if (!liffUrl) throw new Error("尚未設定 LIFF（缺少 VITE_LIFF_ID）");
+      // 不在 LINE in-app：直接導向 LIFF URL（不要呼叫 liff.login）
+      if (!liff.isInClient()) {
+        if (!liffUrl) throw new Error("尚未設定 LIFF（缺少 VITE_LIFF_ID）");
 
-      // 帶 autoshare=1，進 LIFF 後自動觸發
-      const u = new URL(liffUrl);
-      u.searchParams.set("autoshare", "1");
-      window.location.href = u.toString();
-      return;
-    }
-
-        // 已登入則繼續執行 shareTargetPicker
+        // 帶 autoshare=1，進入 LIFF 後自動觸發分享
+        const u = new URL(liffUrl);
+        u.searchParams.set("autoshare", "1");
+        window.location.href = u.toString();
+        return;
       }
 
       // 確保 LIFF 已初始化
@@ -220,14 +217,13 @@ export default function Share() {
 
       // 檢查 API 可用性
       if (!liff.isApiAvailable("shareTargetPicker")) {
-        // 在外部瀏覽器中，如果 Login 後仍不可用，可能是 Console 沒開權限
         throw new Error("此環境不支援分享好友，或未開啟 ShareTargetPicker 權限（請檢查 LINE Developers Console）。");
       }
 
-      // ✅ 送出前硬檢查，避免你「看似分享成功但好友收不到」
+      // 送出前檢查 contents 結構
       validateBeforeShare(contents);
 
-      // ✅ 明確建立 payload（這就是你要抓問題的「結構」）
+      // 建立 payload
       const payload = {
         type: "flex" as const,
         altText,
@@ -244,10 +240,10 @@ export default function Share() {
       console.log("[Share] payload JSON =", JSON.stringify(payload, null, 2));
       console.log("===== SHARE PAYLOAD END =====");
 
-      // ✅ 呼叫 shareTargetPicker
+      // 呼叫 shareTargetPicker
       const res = await liff.shareTargetPicker(messages);
 
-      // ✅ 正確判斷：取消是 null，成功是非 null
+      // 正確判斷：取消是 null，成功是非 null
       if (res === null) {
         setToast({ type: "err", msg: "已取消分享" });
       } else {
@@ -261,69 +257,69 @@ export default function Share() {
     }
   }
 
-  async function onPrimaryClick() {
-    await triggerShare();
-  }
+async function onPrimaryClick() {
+  await triggerShare();
+}
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6">
-            <div className="text-xl font-semibold text-gray-900">分享 Flex Message</div>
-            <div className="mt-2 text-sm text-gray-500">
-              這頁面的預覽即為實際分享給好友的內容（published 版本）。
-            </div>
-
-            {toast ? (
-              <div
-                className={`mt-4 rounded-xl p-3 text-sm whitespace-pre-wrap ${toast.type === "ok"
-                    ? "bg-green-50 text-green-700 border border-green-100"
-                    : "bg-red-50 text-red-700 border border-red-100"
-                  }`}
-              >
-                {toast.msg}
-              </div>
-            ) : null}
-
-            <div className="mt-6 flex gap-3">
-              <button className="glass-btn flex-1" disabled={loading || sharing} onClick={onPrimaryClick}>
-                {sharing ? "處理中…" : "分享給好友"}
-              </button>
-
-              <button
-                className="glass-btn glass-btn--secondary"
-                onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              >
-                看預覽
-              </button>
-            </div>
-
-            {!isLineInApp() && liffReady && !liff.isLoggedIn() ? (
-              <div className="mt-3 text-xs text-gray-500">
-                提示：電腦版需先登入 LINE 帳號才能使用分享功能。點擊按鈕將導向登入頁面。
-              </div>
-            ) : null}
+return (
+  <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6">
+          <div className="text-xl font-semibold text-gray-900">分享 Flex Message</div>
+          <div className="mt-2 text-sm text-gray-500">
+            這頁面的預覽即為實際分享給好友的內容（published 版本）。
           </div>
 
-          <div ref={previewRef} className="border-t border-gray-100 bg-gray-50 p-6">
-            <div className="font-semibold text-gray-900">預覽</div>
-            <div className="mt-4">
-              {loading ? (
-                <div className="text-sm text-gray-500">載入中…</div>
-              ) : contents ? (
-                <FlexPreview doc={docModel} flex={flexJson} />
-              ) : (
-                <div className="text-sm text-gray-500">沒有可預覽的內容</div>
-              )}
+          {toast ? (
+            <div
+              className={`mt-4 rounded-xl p-3 text-sm whitespace-pre-wrap ${toast.type === "ok"
+                ? "bg-green-50 text-green-700 border border-green-100"
+                : "bg-red-50 text-red-700 border border-red-100"
+                }`}
+            >
+              {toast.msg}
             </div>
+          ) : null}
+
+          <div className="mt-6 flex gap-3">
+            <button className="glass-btn flex-1" disabled={loading || sharing} onClick={onPrimaryClick}>
+              {sharing ? "處理中…" : "分享給好友"}
+            </button>
+
+            <button
+              className="glass-btn glass-btn--secondary"
+              onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            >
+              看預覽
+            </button>
           </div>
+
+          {!isLineInApp() && liffReady && !liff.isLoggedIn() ? (
+            <div className="mt-3 text-xs text-gray-500">
+              提示：電腦版需先登入 LINE 帳號才能使用分享功能。點擊按鈕將導向登入頁面。
+            </div>
+          ) : null}
         </div>
 
-        <div className="mt-6 text-center text-xs text-gray-400">
-          分享連結：<span className="select-all">{shareUrl}</span>
+        <div ref={previewRef} className="border-t border-gray-100 bg-gray-50 p-6">
+          <div className="font-semibold text-gray-900">預覽</div>
+          <div className="mt-4">
+            {loading ? (
+              <div className="text-sm text-gray-500">載入中…</div>
+            ) : contents ? (
+              <FlexPreview doc={docModel} flex={flexJson} />
+            ) : (
+              <div className="text-sm text-gray-500">沒有可預覽的內容</div>
+            )}
+          </div>
         </div>
       </div>
+
+      <div className="mt-6 text-center text-xs text-gray-400">
+        分享連結：<span className="select-all">{shareUrl}</span>
+      </div>
     </div>
-  );
+  </div>
+);
 }
