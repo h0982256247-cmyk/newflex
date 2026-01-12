@@ -128,9 +128,10 @@ export default function Share() {
 
       // 檢查是否在 LIFF 環境
       if (!liff.isInClient()) {
-        // 不在 LINE 內，導向 LIFF URL
+        // 不在 LINE 內，導向 LIFF URL，並加上 autoshare=1 自動觸發分享
         if (liffUrl) {
-          window.location.href = liffUrl;
+          const separator = liffUrl.includes("?") ? "&" : "?";
+          window.location.href = `${liffUrl}${separator}autoshare=1`;
         } else {
           setToast({ type: "err", msg: "尚未設定 LIFF（缺少 VITE_LIFF_ID）" });
         }
@@ -150,13 +151,30 @@ export default function Share() {
 
       console.log("[Share] Calling shareTargetPicker with:", { altText, contents });
 
+      // 驗證 Flex Message 基本格式
+      if (!altText || altText.trim().length === 0) {
+        throw new Error("altText 不可為空");
+      }
+      if (!contents || typeof contents !== "object") {
+        throw new Error("Flex contents 格式錯誤");
+      }
+
       const res = await liff.shareTargetPicker([{ type: "flex", altText, contents }]);
+
+      console.log("[Share] shareTargetPicker result:", res);
 
       if (res === undefined) {
         // 使用者取消或關閉
         setToast({ type: "err", msg: "已取消分享" });
       } else if (res) {
-        setToast({ type: "ok", msg: "已傳送成功！" });
+        setToast({
+          type: "ok",
+          msg: "已傳送成功！\n\n⚠️ 注意：如果好友沒收到訊息，可能原因：\n1. 分享給了自己（不會顯示）\n2. 好友封鎖了你\n3. 圖片 URL 無法訪問\n4. 好友 LINE 版本過舊"
+        });
+      } else {
+        // res === false，分享失敗
+        console.error("[Share] shareTargetPicker returned false");
+        setToast({ type: "err", msg: "分享失敗，請稍後再試" });
       }
     } catch (e: any) {
       console.error("[Share] Error:", e);
