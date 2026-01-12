@@ -253,7 +253,7 @@ export default function Share() {
               </button>
             </div>
 
-            {!isLineInApp() && !liff.isLoggedIn() ? (
+            {!isLineInApp() && liffReady && !liff.isLoggedIn() ? (
               <div className="mt-3 text-xs text-gray-500">
                 提示：電腦版需先登入 LINE 帳號才能使用分享功能。點擊按鈕將導向登入頁面。
               </div>
