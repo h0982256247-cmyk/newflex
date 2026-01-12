@@ -165,9 +165,9 @@ export function renderFlexFromContent(
                             color: btn.bgColor || undefined,
                             action: {
                                 type: "uri",
-                                label: (btn.label || "查看").slice(0, 20),
                                 uri: btn.action.uri,
                             },
+                            label: (btn.label || "查看").slice(0, 20),
                         },
                     ],
                     flex: 0,

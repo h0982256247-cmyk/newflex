@@ -107,7 +107,8 @@ function toFooterButtonComponent(node: any) {
 
   const btn: any = {
     type: "button",
-    action: { ...action, label }, // LINE button action needs label
+    action: action, // ✅ action 不包含 label
+    label: label,   // ✅ label 是 button 的直接屬性
   };
 
   // style: primary/secondary/link

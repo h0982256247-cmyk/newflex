@@ -53,6 +53,7 @@ function sectionToBubble(section: Section, docId?: string) {
       color: isHexColor(b.bgColor) ? b.bgColor : "#0A84FF",
       action: actionToFlex(b.action, docId),
       height: "sm",
+      label: b.label || "按鈕",
     }))
   } : undefined;
 
