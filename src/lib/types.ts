@@ -1,6 +1,6 @@
 export type LayoutAlign = "start" | "center" | "end";
 export type SizeToken = "xs" | "sm" | "md" | "lg" | "xl";
-export type ImgRatio = "1:1" | "16:9" | "4:3";
+export type ImgRatio = "1:1" | "16:9" | "4:3" | "20:13";
 export type ImgMode = "cover" | "contain";
 
 export type ImageCheckResult = { ok: boolean; level: "pass" | "warn" | "fail"; reasonCode?: string; checkedAt?: string };

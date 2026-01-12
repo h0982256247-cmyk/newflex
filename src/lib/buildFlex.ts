@@ -42,6 +42,7 @@ function sectionToBubble(section: Section, docId?: string) {
     ? {
       type: "image",
       url: heroUrl,
+      size: "full",
       aspectRatio: heroImg.ratio,
       aspectMode: heroImg.mode,
     }

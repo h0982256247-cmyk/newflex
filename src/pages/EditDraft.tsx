@@ -140,7 +140,7 @@ export default function EditDraft() {
                   hero: [{
                     id: uid("hero_"), kind: "hero_image", enabled: true,
                     image: { kind: "external", url: "https://placehold.co/600x400/png", lastCheck: { ok: true, level: "pass" } },
-                    ratio: "16:9", mode: "cover"
+                    ratio: "20:13", mode: "cover"
                   }],
                   body: [],
                   footer: []
@@ -188,7 +188,7 @@ export default function EditDraft() {
                   if (!file) return;
 
                   // Simple verification
-                  if (file.size > 5 * 1024 * 1024) return alert("檔案過大，請小於 5MB");
+                  if (file.size > 1 * 1024 * 1024) return alert("檔案過大，請小於 1MB");
 
                   try {
                     const ext = file.name.split(".").pop();
@@ -213,7 +213,26 @@ export default function EditDraft() {
                 }} />
               </label>
 
-              <div className="text-xs opacity-70">（你已選 bucket：flex-assets。storage.sql 已附。）</div>
+              </div>
+
+              <div className="mt-3">
+                 <div className="glass-label mb-2">圖片比例 (Aspect Ratio)</div>
+                 <select
+                   className="glass-input"
+                   value={section.hero[0]?.ratio || "1.91:1"}
+                   onChange={(e) => {
+                     const ratio = e.target.value as any;
+                     const hero = section.hero.map((c: any) => c.kind === "hero_image" ? { ...c, ratio } : c);
+                     setSection({ ...section, hero });
+                   }}
+                 >
+                   <option value="20:13">20:13 (標準卡片)</option>
+                   <option value="1.91:1">1.91:1 (矩形)</option>
+                   <option value="16:9">16:9 (寬螢幕)</option>
+                   <option value="4:3">4:3 (標準)</option>
+                   <option value="1:1">1:1 (正方形)</option>
+                 </select>
+               </div>
             </div>
           </AccordionSection>
 
@@ -461,7 +480,7 @@ export default function EditDraft() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
