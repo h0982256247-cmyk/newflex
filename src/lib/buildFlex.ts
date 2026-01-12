@@ -81,7 +81,7 @@ function sectionToBubble(section: Section, docId?: string) {
           { type: "text", text: c.value, size: "sm", color: "#111111", flex: 5, wrap: true },
         ],
       };
-      if (c.action) row.contents[1].action = actionToFlex(c.action, docId);
+      if (c.action) row.contents[1].action = actionToFlex(c.action, undefined, docId);
       bodyContents.push(row);
     }
 
@@ -113,7 +113,7 @@ function sectionToBubble(section: Section, docId?: string) {
         type: "button",
         style: "primary",
         color: isHexColor(b.bgColor) ? b.bgColor : "#0A84FF",
-        action: actionToFlex(b.action, docId),
+        action: actionToFlex(b.action, b.label, docId),
         height: "sm",
       })),
     }

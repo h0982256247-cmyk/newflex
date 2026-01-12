@@ -156,14 +156,13 @@ export default function Share() {
       setSharing(true);
       setToast(null);
 
-      // 不在 LINE in-app → 導向 LIFF URL
+      // 不在 LINE in-app
       if (!liff.isInClient()) {
-        if (liffUrl) {
-          window.location.href = liffUrl;
-        } else {
-          setToast({ type: "err", msg: "尚未設定 LIFF（缺少 VITE_LIFF_ID）" });
+        if (!liff.isLoggedIn()) {
+          liff.login({ redirectUri: window.location.href });
+          return;
         }
-        return;
+        // 已登入則繼續執行 shareTargetPicker
       }
 
       // 確保 LIFF 已初始化
@@ -175,7 +174,8 @@ export default function Share() {
 
       // 檢查 API 可用性
       if (!liff.isApiAvailable("shareTargetPicker")) {
-        throw new Error("目前 LINE 版本不支援分享好友（shareTargetPicker）。請更新 LINE App 後再試。");
+        // 在外部瀏覽器中，如果 Login 後仍不可用，可能是 Console 沒開權限
+        throw new Error("此環境不支援分享好友，或未開啟 ShareTargetPicker 權限（請檢查 LINE Developers Console）。");
       }
 
       // ✅ 送出前硬檢查，避免你「看似分享成功但好友收不到」
@@ -231,11 +231,10 @@ export default function Share() {
 
             {toast ? (
               <div
-                className={`mt-4 rounded-xl p-3 text-sm whitespace-pre-wrap ${
-                  toast.type === "ok"
+                className={`mt-4 rounded-xl p-3 text-sm whitespace-pre-wrap ${toast.type === "ok"
                     ? "bg-green-50 text-green-700 border border-green-100"
                     : "bg-red-50 text-red-700 border border-red-100"
-                }`}
+                  }`}
               >
                 {toast.msg}
               </div>
@@ -254,9 +253,9 @@ export default function Share() {
               </button>
             </div>
 
-            {!isLineInApp() ? (
+            {!isLineInApp() && !liff.isLoggedIn() ? (
               <div className="mt-3 text-xs text-gray-500">
-                提示：若你是從瀏覽器開啟，點「分享給好友」會帶你到 LINE 內開啟（LIFF），再點一次即可分享。
+                提示：電腦版需先登入 LINE 帳號才能使用分享功能。點擊按鈕將導向登入頁面。
               </div>
             ) : null}
           </div>

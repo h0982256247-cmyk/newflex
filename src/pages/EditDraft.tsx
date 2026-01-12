@@ -431,7 +431,7 @@ export default function EditDraft() {
             <div className="flex items-center justify-between">
               <div className="font-semibold">即時預覽</div>
               <div className="flex items-center gap-2">
-                <div className="glass-bg p-0.5 rounded-lg flex text-xs">
+                <div className="bg-gray-100/50 border border-gray-200/50 p-0.5 rounded-lg flex text-xs">
                   <button className={`px-3 py-1 rounded-md transition ${viewMode === "preview" ? "bg-white shadow text-black font-medium" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setViewMode("preview")}>預覽</button>
                   <button className={`px-3 py-1 rounded-md transition ${viewMode === "json" ? "bg-white shadow text-black font-medium" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setViewMode("json")}>JSON</button>
                 </div>
