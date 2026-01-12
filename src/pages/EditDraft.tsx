@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { AccordionSection } from "@/components/Accordion";
 import FlexPreview from "@/components/FlexPreview";
 import ColorPicker, { AutoTextColorHint } from "@/components/ColorPicker";
+import { buildFlex } from "@/lib/buildFlex";
 import { getDoc, saveDoc, createTemplateFromDoc } from "@/lib/db";
 import { DocModel, FooterButton, ImageSource } from "@/lib/types";
 import { uid, autoTextColor } from "@/lib/utils";
@@ -19,6 +20,8 @@ export default function EditDraft() {
   const [selectedCardIdx, setSelectedCardIdx] = useState(0);
   const [open, setOpen] = useState<"hero" | "body" | "footer">("hero");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [viewMode, setViewMode] = useState<"preview" | "json">("preview");
+  const [jsonCode, setJsonCode] = useState<string | null>(null);
   const saveTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -28,6 +31,10 @@ export default function EditDraft() {
       setDoc(row.content);
     })();
   }, [id]);
+
+  useEffect(() => {
+    setJsonCode(null);
+  }, [doc]);
 
   const scheduleSave = (next: DocModel) => {
     setDoc(next);
@@ -423,9 +430,26 @@ export default function EditDraft() {
           <div className="glass-panel p-4">
             <div className="flex items-center justify-between">
               <div className="font-semibold">即時預覽</div>
-              <span className="glass-badge">{report.errors.length ? `❌ ${report.errors.length}` : report.warnings.length ? `⚠️ ${report.warnings.length}` : "✅ OK"}</span>
+              <div className="flex items-center gap-2">
+                <div className="glass-bg p-0.5 rounded-lg flex text-xs">
+                  <button className={`px-3 py-1 rounded-md transition ${viewMode === "preview" ? "bg-white shadow text-black font-medium" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setViewMode("preview")}>預覽</button>
+                  <button className={`px-3 py-1 rounded-md transition ${viewMode === "json" ? "bg-white shadow text-black font-medium" : "text-gray-500 hover:text-gray-700"}`} onClick={() => setViewMode("json")}>JSON</button>
+                </div>
+                <span className="glass-badge">{report.errors.length ? `❌ ${report.errors.length}` : report.warnings.length ? `⚠️ ${report.warnings.length}` : "✅ OK"}</span>
+              </div>
             </div>
-            <div className="mt-4"><FlexPreview doc={doc} /></div>
+            <div className="mt-4">
+              {viewMode === "json" ? (
+                <textarea
+                  className="w-full h-[500px] glass-input font-mono text-xs leading-5 p-3 resize-y"
+                  value={jsonCode ?? JSON.stringify(buildFlex(doc), null, 2)}
+                  onChange={(e) => setJsonCode(e.target.value)}
+                  spellCheck={false}
+                />
+              ) : (
+                <FlexPreview doc={doc} flex={jsonCode ? (() => { try { return JSON.parse(jsonCode); } catch { return undefined; } })() : undefined} />
+              )}
+            </div>
           </div>
 
           <div className="glass-panel p-4">

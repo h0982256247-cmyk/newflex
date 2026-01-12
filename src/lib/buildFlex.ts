@@ -15,13 +15,16 @@ function buildLiffShareUrl(docId?: string) {
   return `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent(state)}`;
 }
 
-function actionToFlex(a: Action, docId?: string) {
-  if (a.type === "uri") return { type: "uri", uri: a.uri };
-  if (a.type === "message") return { type: "message", text: a.text };
+function actionToFlex(a: Action, label?: string, docId?: string) {
+  const common = label ? { label } : {};
+  if (a.type === "uri") return { type: "uri", uri: a.uri, ...common };
+  if (a.type === "message") return { type: "message", text: a.text, ...common };
   if (a.type === "share") {
-    return { type: "uri", uri: buildLiffShareUrl(docId) };
+    // Share action usually doesn't have a label in the action itself when used in certain contexts,
+    // but for a Button component, the label property on the action object is what determines the button text.
+    return { type: "uri", uri: buildLiffShareUrl(docId), ...common };
   }
-  return { type: "uri", uri: "https://example.com" };
+  return { type: "uri", uri: "https://example.com", ...common };
 }
 
 function safeHttpsUrl(url?: string) {
@@ -37,11 +40,11 @@ function sectionToBubble(section: Section, docId?: string) {
   const heroUrl = heroImg ? safeHttpsUrl(heroImg?.image?.url) : null;
   const hero = heroUrl
     ? {
-        type: "image",
-        url: heroUrl,
-        aspectRatio: heroImg.ratio,
-        aspectMode: heroImg.mode,
-      }
+      type: "image",
+      url: heroUrl,
+      aspectRatio: heroImg.ratio,
+      aspectMode: heroImg.mode,
+    }
     : undefined;
 
   const bodyContents: any[] = [];
@@ -103,17 +106,17 @@ function sectionToBubble(section: Section, docId?: string) {
   const footerButtons = section.footer.filter((b) => b.enabled).slice(0, 3);
   const footer = footerButtons.length
     ? {
-        type: "box",
-        layout: "vertical",
-        spacing: "sm",
-        contents: footerButtons.map((b: FooterButton) => ({
-          type: "button",
-          style: "primary",
-          color: isHexColor(b.bgColor) ? b.bgColor : "#0A84FF",
-          action: actionToFlex(b.action, docId),
-          height: "sm",
-        })),
-      }
+      type: "box",
+      layout: "vertical",
+      spacing: "sm",
+      contents: footerButtons.map((b: FooterButton) => ({
+        type: "button",
+        style: "primary",
+        color: isHexColor(b.bgColor) ? b.bgColor : "#0A84FF",
+        action: actionToFlex(b.action, docId),
+        height: "sm",
+      })),
+    }
     : undefined;
 
   const bubble: any = {
