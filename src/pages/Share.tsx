@@ -5,8 +5,6 @@ import FlexPreview from "@/components/FlexPreview";
 import { resolveDocIdToToken, resolveShareToken } from "@/lib/db";
 import { isLineInApp } from "@/lib/lineEnv";
 
-type UrlParams = { token: string | null; id: string | null };
-
 type FullUrlParams = { token: string | null; id: string | null; autoshare: boolean };
 
 function parseUrlParams(): FullUrlParams {
@@ -20,13 +18,19 @@ function parseUrlParams(): FullUrlParams {
     const liffState = sp.get("liff.state");
     if (liffState) {
       const decoded = decodeURIComponent(liffState);
-      const q = decoded.includes("?") ? decoded.split("?")[1] : decoded.startsWith("?") ? decoded.slice(1) : decoded;
+      const q = decoded.includes("?")
+        ? decoded.split("?")[1]
+        : decoded.startsWith("?")
+          ? decoded.slice(1)
+          : decoded;
+
       const inner = new URLSearchParams(q);
       token = inner.get("token");
       id = inner.get("id");
       autoshare = inner.get("autoshare") === "1";
     }
   }
+
   return { token, id, autoshare };
 }
 
@@ -39,6 +43,7 @@ export default function Share() {
   const [flexJson, setFlexJson] = useState<any>(null);
   const [toast, setToast] = useState<Toast>(null);
   const [sharing, setSharing] = useState(false);
+
   const [liffReady, setLiffReady] = useState(false);
   const autoShareTriggered = useRef(false);
 
@@ -53,7 +58,11 @@ export default function Share() {
 
   const liffUrl = useMemo(() => {
     if (!liffId) return null;
-    const q = tokenParam ? `token=${encodeURIComponent(tokenParam)}` : idParam ? `id=${encodeURIComponent(idParam)}` : "";
+    const q = tokenParam
+      ? `token=${encodeURIComponent(tokenParam)}`
+      : idParam
+        ? `id=${encodeURIComponent(idParam)}`
+        : "";
     return `https://liff.line.me/${liffId}${q ? "?" + q : ""}`;
   }, [liffId, tokenParam, idParam]);
 
@@ -102,33 +111,53 @@ export default function Share() {
     })();
   }, [tokenParam, idParam]);
 
-  // autoshare: 自動觸發分享
-  useEffect(() => {
-    if (autoshare && liffReady && flexJson?.contents && !autoShareTriggered.current && !loading) {
-      autoShareTriggered.current = true;
-      // 延遲一點確保 UI 渲染完成
-      setTimeout(() => {
-        triggerShare();
-      }, 500);
-    }
-  }, [autoshare, liffReady, flexJson, loading]);
-
   const contents = flexJson?.contents ?? null;
   const altText = flexJson?.altText ?? (docModel?.title || "Flex Message");
 
-  async function triggerShare() {
-    if (!contents) {
-      setToast({ type: "err", msg: "此內容尚未準備好（沒有 flex contents）" });
-      return;
+  // autoshare: 自動觸發分享（⚠️ 建議正式上線可關掉，只保留點擊觸發更穩）
+  useEffect(() => {
+    if (
+      autoshare &&
+      liffReady &&
+      !loading &&
+      !!contents &&
+      !autoShareTriggered.current
+    ) {
+      autoShareTriggered.current = true;
+      setTimeout(() => {
+        triggerShare();
+      }, 300);
+    }
+  }, [autoshare, liffReady, loading, contents]);
+
+  function validateBeforeShare(c: any) {
+    if (!c) throw new Error("此內容尚未準備好（沒有 flex contents）");
+
+    const ctype = c?.type;
+    if (!ctype || !["bubble", "carousel"].includes(ctype)) {
+      throw new Error(`contents.type 不正確：${ctype}（必須是 bubble 或 carousel）`);
     }
 
+    if (ctype === "carousel") {
+      const arr = c?.contents;
+      if (!Array.isArray(arr)) {
+        throw new Error("carousel.contents 必須是 array");
+      }
+      const n = arr.length;
+      // 保守上限 <= 10（最穩）
+      if (n > 10) {
+        throw new Error(`多頁（carousel bubble）超過上限：${n}（建議 <= 10）`);
+      }
+    }
+  }
+
+  async function triggerShare() {
     try {
       setSharing(true);
       setToast(null);
 
-      // 檢查是否在 LIFF 環境
+      // 不在 LINE in-app → 導向 LIFF URL
       if (!liff.isInClient()) {
-        // 不在 LINE 內，導向 LIFF URL
         if (liffUrl) {
           window.location.href = liffUrl;
         } else {
@@ -141,6 +170,7 @@ export default function Share() {
       if (!liffReady) {
         if (!liffId) throw new Error("缺少 VITE_LIFF_ID");
         await liff.init({ liffId });
+        setLiffReady(true);
       }
 
       // 檢查 API 可用性
@@ -148,14 +178,33 @@ export default function Share() {
         throw new Error("目前 LINE 版本不支援分享好友（shareTargetPicker）。請更新 LINE App 後再試。");
       }
 
-      console.log("[Share] Calling shareTargetPicker with:", { altText, contents });
+      // ✅ 送出前硬檢查，避免你「看似分享成功但好友收不到」
+      validateBeforeShare(contents);
 
-      const res = await liff.shareTargetPicker([{ type: "flex", altText, contents }]);
+      // ✅ 明確建立 payload（這就是你要抓問題的「結構」）
+      const payload = {
+        type: "flex" as const,
+        altText,
+        contents,
+      };
+      const messages = [payload];
 
-      if (res === undefined) {
-        // 使用者取消或關閉
+      console.log("===== SHARE PAYLOAD START =====");
+      console.log("[Share] messages.length =", messages.length);
+      console.log("[Share] contents.type =", contents?.type);
+      if (contents?.type === "carousel") {
+        console.log("[Share] carousel bubbles =", Array.isArray(contents?.contents) ? contents.contents.length : -1);
+      }
+      console.log("[Share] payload JSON =", JSON.stringify(payload, null, 2));
+      console.log("===== SHARE PAYLOAD END =====");
+
+      // ✅ 呼叫 shareTargetPicker
+      const res = await liff.shareTargetPicker(messages);
+
+      // ✅ 正確判斷：取消是 null，成功是非 null
+      if (res === null) {
         setToast({ type: "err", msg: "已取消分享" });
-      } else if (res) {
+      } else {
         setToast({ type: "ok", msg: "已傳送成功！" });
       }
     } catch (e: any) {
@@ -183,7 +232,9 @@ export default function Share() {
             {toast ? (
               <div
                 className={`mt-4 rounded-xl p-3 text-sm whitespace-pre-wrap ${
-                  toast.type === "ok" ? "bg-green-50 text-green-700 border border-green-100" : "bg-red-50 text-red-700 border border-red-100"
+                  toast.type === "ok"
+                    ? "bg-green-50 text-green-700 border border-green-100"
+                    : "bg-red-50 text-red-700 border border-red-100"
                 }`}
               >
                 {toast.msg}
@@ -191,11 +242,7 @@ export default function Share() {
             ) : null}
 
             <div className="mt-6 flex gap-3">
-              <button
-                className="glass-btn flex-1"
-                disabled={loading || sharing}
-                onClick={onPrimaryClick}
-              >
+              <button className="glass-btn flex-1" disabled={loading || sharing} onClick={onPrimaryClick}>
                 {sharing ? "處理中…" : "分享給好友"}
               </button>
 
