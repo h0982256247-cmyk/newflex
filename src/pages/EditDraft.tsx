@@ -25,9 +25,10 @@ export default function EditDraft() {
   const [activeShare, setActiveShare] = useState<{ token: string; version_no: number } | null>(null);
   const saveTimer = useRef<number | null>(null);
 
-  // 分享連結使用 /share?token=xxx 格式
-  const shareUrl = activeShare
-    ? `${window.location.origin}/share?token=${activeShare.token}`
+  // 分享連結使用 LIFF URL 帶 autoshare=1 格式
+  const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
+  const shareUrl = activeShare && liffId
+    ? `https://liff.line.me/${liffId}?token=${activeShare.token}&autoshare=1`
     : null;
 
   useEffect(() => {
