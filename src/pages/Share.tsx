@@ -5,73 +5,39 @@ import FlexPreview from "@/components/FlexPreview";
 import { resolveDocIdToToken, resolveShareToken } from "@/lib/db";
 import { isLineInApp } from "@/lib/lineEnv";
 
-type FullUrlParams = {
-  token: string | null;
-  id: string | null;
-  autoshare: boolean;
-  fromLogin: boolean;
-};
+type FullUrlParams = { token: string | null; id: string | null; autoshare: boolean };
 
 function parseUrlParams(): FullUrlParams {
   const sp = new URLSearchParams(window.location.search);
   let token = sp.get("token");
   let id = sp.get("id");
   let autoshare = sp.get("autoshare") === "1";
-  let fromLogin = sp.get("fromLogin") === "1";
 
   // LIFF 可能會把參數包在 liff.state
   if (!token && !id) {
     const liffState = sp.get("liff.state");
     if (liffState) {
-      try {
-        const decoded = decodeURIComponent(liffState);
-        // liff.state 可能是 "?token=xxx" 或 "token=xxx" 或 "/share?token=xxx"
-        let queryPart = decoded;
+      const decoded = decodeURIComponent(liffState);
+      const q = decoded.includes("?")
+        ? decoded.split("?")[1]
+        : decoded.startsWith("?")
+          ? decoded.slice(1)
+          : decoded;
 
-        if (decoded.includes("?")) {
-          queryPart = decoded.split("?").pop() || "";
-        } else if (decoded.startsWith("/")) {
-          queryPart = "";
-        }
-
-        const inner = new URLSearchParams(queryPart);
-        token = inner.get("token") || token;
-        id = inner.get("id") || id;
-        autoshare = inner.get("autoshare") === "1" || autoshare;
-        fromLogin = inner.get("fromLogin") === "1" || fromLogin;
-      } catch (e) {
-        console.error("[parseUrlParams] Failed to parse liff.state:", e);
-      }
+      const inner = new URLSearchParams(q);
+      token = inner.get("token");
+      id = inner.get("id");
+      autoshare = inner.get("autoshare") === "1";
     }
   }
 
-  // 某些情境會用 hash
-  if (!token && !id && window.location.hash) {
-    try {
-      const hashParams = new URLSearchParams(window.location.hash.slice(1));
-      token = hashParams.get("token") || token;
-      id = hashParams.get("id") || id;
-      autoshare = hashParams.get("autoshare") === "1" || autoshare;
-      fromLogin = hashParams.get("fromLogin") === "1" || fromLogin;
-    } catch (e) {
-      console.error("[parseUrlParams] Failed to parse hash:", e);
-    }
-  }
-
-  console.log("[parseUrlParams] Resolved:", { token, id, autoshare, fromLogin });
-  return { token, id, autoshare, fromLogin };
+  return { token, id, autoshare };
 }
 
 type Toast = { type: "ok" | "err"; msg: string } | null;
 
 export default function Share() {
-  const [urlParams, setUrlParams] = useState<FullUrlParams>({
-    token: null,
-    id: null,
-    autoshare: false,
-    fromLogin: false,
-  });
-
+  const { token: tokenParam, id: idParam, autoshare } = useMemo(() => parseUrlParams(), []);
   const [loading, setLoading] = useState(true);
   const [docModel, setDocModel] = useState<any>(null);
   const [flexJson, setFlexJson] = useState<any>(null);
@@ -79,16 +45,9 @@ export default function Share() {
   const [sharing, setSharing] = useState(false);
 
   const [liffReady, setLiffReady] = useState(false);
-  const [paramsReady, setParamsReady] = useState(false);
-
   const autoShareTriggered = useRef(false);
 
   const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
-
-  const tokenParam = urlParams.token;
-  const idParam = urlParams.id;
-  const autoshare = urlParams.autoshare;
-  const fromLogin = urlParams.fromLogin;
 
   const shareUrl = useMemo(() => {
     const base = `${window.location.origin}${window.location.pathname}`;
@@ -97,64 +56,54 @@ export default function Share() {
     return window.location.href;
   }, [tokenParam, idParam]);
 
-  // LIFF HTTPS URL（備援用）
-  const liffUrl = useMemo(() => {
-    if (!liffId) return null;
-    const sp = new URLSearchParams();
-    if (tokenParam) sp.set("token", tokenParam);
-    else if (idParam) sp.set("id", idParam);
-    return `https://liff.line.me/${liffId}${sp.toString() ? `?${sp.toString()}` : ""}`;
-  }, [liffId, tokenParam, idParam]);
+  // ✅ 最穩的 LIFF 連結（同時支援桌機/手機/LINE 內開啟）
+  // - Web 連結：https://liff.line.me/{LIFF_ID}?liff.state=/share?...（適合 QR/複製）
+  // - Line Scheme：line://app/{LIFF_ID}?liff.state=/share?...（可嘗試在桌機 Chrome 喚起 LINE Desktop）
+  const liffState = useMemo(() => {
+    const inner = new URLSearchParams();
+    if (tokenParam) inner.set("token", tokenParam);
+    else if (idParam) inner.set("id", idParam);
+    // 讓使用者被導入 LIFF 後可以自動觸發分享（仍以 user gesture 為優先）
+    inner.set("autoshare", "1");
+    return `/share?${inner.toString()}`;
+  }, [tokenParam, idParam]);
 
-  // ✅ Deep link：line://app/{LIFF_ID}?token=...&autoshare=1
-  const deepLinkUrl = useMemo(() => {
+  const liffWebUrl = useMemo(() => {
     if (!liffId) return null;
-    const sp = new URLSearchParams();
-    if (tokenParam) sp.set("token", tokenParam);
-    else if (idParam) sp.set("id", idParam);
-    sp.set("autoshare", "1");
-    // fromLogin 這裡不需要，因為 deep link 是為了進 LINE
-    return `line://app/${liffId}${sp.toString() ? `?${sp.toString()}` : ""}`;
-  }, [liffId, tokenParam, idParam]);
+    return `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent(liffState)}`;
+  }, [liffId, liffState]);
+
+  const liffLineUrl = useMemo(() => {
+    if (!liffId) return null;
+    return `line://app/${liffId}?liff.state=${encodeURIComponent(liffState)}`;
+  }, [liffId, liffState]);
 
   const previewRef = useRef<HTMLDivElement | null>(null);
 
-  // 初始化 LIFF 並解析 URL 參數
+  // 初始化 LIFF
   useEffect(() => {
     (async () => {
-      const initialParams = parseUrlParams();
-
       if (!liffId) {
         console.warn("[Share] VITE_LIFF_ID not set");
-        setUrlParams(initialParams);
-        setParamsReady(true);
         return;
       }
-
       try {
         await liff.init({ liffId });
         setLiffReady(true);
         console.log("[Share] LIFF initialized, isInClient:", liff.isInClient());
-
-        const params = parseUrlParams();
-        setUrlParams(params);
-        setParamsReady(true);
       } catch (e: any) {
         console.error("[Share] LIFF init error:", e);
-        setUrlParams(initialParams);
-        setParamsReady(true);
       }
     })();
   }, [liffId]);
 
   // 載入分享資料
   useEffect(() => {
-    if (!paramsReady) return;
-
     (async () => {
       try {
         setLoading(true);
 
+        // resolve share token if only have id
         let token = tokenParam;
         if (!token && idParam) {
           token = (await resolveDocIdToToken(idParam)) || null;
@@ -172,32 +121,26 @@ export default function Share() {
         setLoading(false);
       }
     })();
-  }, [paramsReady, tokenParam, idParam]);
+  }, [tokenParam, idParam]);
 
   const contents = flexJson?.contents ?? null;
   const altText = flexJson?.altText ?? (docModel?.title || "Flex Message");
 
-  // ✅ autoshare：登入回來（或 deep link 回來）後，自動觸發一次
+  // autoshare: 自動觸發分享（⚠️ 建議正式上線可關掉，只保留點擊觸發更穩）
   useEffect(() => {
-    if (!autoshare) return;
-    if (!liffReady || loading || !contents) return;
-    if (autoShareTriggered.current) return;
-
-    autoShareTriggered.current = true;
-
-    // ✅ 清掉 autoshare/fromLogin，避免 refresh 又重來
-    try {
-      const u = new URL(window.location.href);
-      u.searchParams.delete("autoshare");
-      u.searchParams.delete("fromLogin");
-      window.history.replaceState({}, "", u.toString());
-    } catch {}
-
-    setTimeout(() => {
-      triggerShare();
-    }, 300);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoshare, fromLogin, liffReady, loading, contents]);
+    if (
+      autoshare &&
+      liffReady &&
+      !loading &&
+      !!contents &&
+      !autoShareTriggered.current
+    ) {
+      autoShareTriggered.current = true;
+      setTimeout(() => {
+        triggerShare();
+      }, 300);
+    }
+  }, [autoshare, liffReady, loading, contents]);
 
   function validateBeforeShare(c: any) {
     if (!c) throw new Error("此內容尚未準備好（沒有 flex contents）");
@@ -213,7 +156,10 @@ export default function Share() {
         throw new Error("carousel.contents 必須是 array");
       }
       const n = arr.length;
-      if (n > 10) throw new Error(`多頁（carousel bubble）超過上限：${n}（建議 <= 10）`);
+      // 保守上限 <= 10（最穩）
+      if (n > 10) {
+        throw new Error(`多頁（carousel bubble）超過上限：${n}（建議 <= 10）`);
+      }
     }
   }
 
@@ -222,72 +168,62 @@ export default function Share() {
       setSharing(true);
       setToast(null);
 
-      if (!liffId) throw new Error("缺少 VITE_LIFF_ID");
+      // 不在 LINE in-app → 導向 LIFF URL
+      if (!liff.isInClient()) {
+        // ✅ 不在 LINE 內：
+        // 1) 先嘗試用 line://app 喚起（桌機 Chrome 也有機會直接打開 LINE Desktop）
+        // 2) 不行再用 https://liff.line.me（適合手機瀏覽器/QR/複製）
+        if (liffLineUrl) {
+          window.location.href = liffLineUrl;
+        } else if (liffWebUrl) {
+          window.location.href = liffWebUrl;
+        } else {
+          setToast({ type: "err", msg: "尚未設定 LIFF（缺少 VITE_LIFF_ID）" });
+        }
+        return;
+      }
 
-      // 確保 liff.init
+      // 確保 LIFF 已初始化
       if (!liffReady) {
+        if (!liffId) throw new Error("缺少 VITE_LIFF_ID");
         await liff.init({ liffId });
         setLiffReady(true);
       }
 
-      // ✅ 你要求：in-client=false 時，改成「自動用 deep link 在 LINE 開啟」
-      if (!liff.isInClient()) {
-        if (!deepLinkUrl) throw new Error("尚未設定 LIFF（缺少 VITE_LIFF_ID）");
-
-        console.log("[Share] not in-client -> deep link open LINE:", deepLinkUrl);
-
-        // 先嘗試 deep link 喚起 LINE
-        window.location.href = deepLinkUrl;
-
-        // 備援：若環境不支援 deep link（例如某些瀏覽器/限制），延遲後改用 https liffUrl
-        if (liffUrl) {
-          setTimeout(() => {
-            // 若使用者已離開頁面就不會執行；若還在，就給備援
-            try {
-              window.location.href = `${liffUrl}${liffUrl.includes("?") ? "&" : "?"}autoshare=1`;
-            } catch {}
-          }, 1200);
-        }
-
-        return;
-      }
-
-      // B) in-client + shareApi=false：先 login，回來 autoshare=1 再試一次
+      // 檢查 API 可用性
       if (!liff.isApiAvailable("shareTargetPicker")) {
-        if (!liff.isLoggedIn()) {
-          const u = new URL(window.location.href);
-          u.searchParams.set("autoshare", "1");
-          u.searchParams.set("fromLogin", "1");
-          const redirectUri = u.toString();
-          console.log("[Share] shareApi=false, do liff.login ->", redirectUri);
-          liff.login({ redirectUri });
-          return;
-        }
-
-        setToast({
-          type: "err",
-          msg:
-            "已登入 LINE，但此環境仍不支援 shareTargetPicker。\n" +
-            "可能原因：LINE 版本過舊、桌機環境限制，或 LIFF 後台未開 ShareTargetPicker。\n" +
-            "請更新 LINE App，或改用手機 LINE 開啟此連結再分享。",
-        });
-        return;
+        throw new Error("目前 LINE 版本不支援分享好友（shareTargetPicker）。請更新 LINE App 後再試。");
       }
 
-      // A) in-client + shareApi=true：直接分享
+      // ✅ 送出前硬檢查，避免你「看似分享成功但好友收不到」
       validateBeforeShare(contents);
 
-      const payload = { type: "flex" as const, altText, contents };
+      // ✅ 明確建立 payload（這就是你要抓問題的「結構」）
+      const payload = {
+        type: "flex" as const,
+        altText,
+        contents,
+      };
       const messages = [payload];
 
       console.log("===== SHARE PAYLOAD START =====");
+      console.log("[Share] messages.length =", messages.length);
+      console.log("[Share] contents.type =", contents?.type);
+      if (contents?.type === "carousel") {
+        console.log("[Share] carousel bubbles =", Array.isArray(contents?.contents) ? contents.contents.length : -1);
+      }
       console.log("[Share] payload JSON =", JSON.stringify(payload, null, 2));
       console.log("===== SHARE PAYLOAD END =====");
 
+      // ✅ 呼叫 shareTargetPicker
       const res = await liff.shareTargetPicker(messages);
 
-      if (res === null) setToast({ type: "err", msg: "已取消分享" });
-      else setToast({ type: "ok", msg: "已傳送成功！" });
+      // ✅ 正確判斷：取消是 null，成功是非 null
+      if (res === null) {
+        setToast({ type: "err", msg: "已取消分享" });
+      } else {
+        setToast({ type: "ok", msg: "已傳送成功！" });
+      }
     } catch (e: any) {
       console.error("[Share] Error:", e);
       setToast({ type: "err", msg: e?.message || String(e) });
@@ -335,19 +271,55 @@ export default function Share() {
               </button>
             </div>
 
-            {/* 非 in-client 時提示 + 提供手動 deep link（避免某些瀏覽器阻擋自動跳轉） */}
-            {!liff.isInClient() && deepLinkUrl ? (
+            {!liff.isInClient() && liffWebUrl ? (
               <div className="mt-3 text-xs text-gray-500">
-                提示：目前不在 LINE 內，已嘗試自動喚起 LINE。若未成功，請點這裡：
-                <a className="underline ml-1" href={deepLinkUrl}>
-                  用 LINE 開啟
-                </a>
+                提示：分享好友必須在 LINE 內開啟（LIFF）。
+                你現在是在瀏覽器環境，點「分享給好友」會嘗試喚起 LINE；若未自動跳轉，請用下方 QR Code / 複製連結在手機或 LINE Desktop 開啟。
               </div>
             ) : null}
 
-            {!isLineInApp() ? (
-              <div className="mt-2 text-xs text-gray-400">
-                分享連結：<span className="select-all">{shareUrl}</span>
+            {!liff.isInClient() && liffWebUrl ? (
+              <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <div className="text-sm font-semibold text-gray-900">電腦也能分享（推薦流程）</div>
+                <div className="mt-1 text-xs text-gray-600">
+                  1) 用手機掃 QR Code 或複製連結到手機 LINE 打開 → 2) 在 LIFF 內選好友分享。
+                </div>
+
+                <div className="mt-3 flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="bg-white p-3 rounded-lg border">
+                    <img
+                      alt="QR Code"
+                      width={160}
+                      height={160}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(liffWebUrl)}`}
+                    />
+                  </div>
+
+                  <div className="flex-1 w-full">
+                    <div className="text-xs text-gray-500 break-all">{liffWebUrl}</div>
+                    <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                      {liffLineUrl ? (
+                        <button
+                          className="glass-btn"
+                          onClick={() => {
+                            window.location.href = liffLineUrl;
+                          }}
+                        >
+                          在 LINE 開啟
+                        </button>
+                      ) : null}
+                      <button
+                        className="glass-btn glass-btn--secondary"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(liffWebUrl);
+                          setToast({ type: "ok", msg: "已複製 LIFF 連結，請貼到手機 LINE 打開後再分享。" });
+                        }}
+                      >
+                        複製 LIFF 連結
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : null}
           </div>
@@ -367,7 +339,7 @@ export default function Share() {
         </div>
 
         <div className="mt-6 text-center text-xs text-gray-400">
-          目前環境：{liffReady ? (liff.isInClient() ? "LINE in-client" : "Browser") : "初始化中…"}
+          分享連結：<span className="select-all">{shareUrl}</span>
         </div>
       </div>
     </div>
