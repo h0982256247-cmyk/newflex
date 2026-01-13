@@ -68,11 +68,23 @@ function FlexBox({ box }: { box: any }) {
     display: "flex",
     flexDirection: box.layout === "vertical" ? "column" : "row",
     gap: getSize(box.spacing) || "8px",
-    alignItems: box.layout === "baseline" ? "baseline" : box.layout === "horizontal" ? "center" : "stretch",
+    alignItems: box.layout === "baseline" ? "baseline" : box.alignItems === "center" ? "center" : box.layout === "horizontal" ? "center" : "stretch",
+    justifyContent: box.justifyContent === "center" ? "center" : undefined,
+    backgroundColor: box.backgroundColor,
+    borderRadius: box.cornerRadius ? getCornerRadius(box.cornerRadius) : undefined,
+    padding: box.paddingAll,
+    cursor: box.action ? "pointer" : undefined,
+  };
+
+  const handleClick = () => {
+    if (box.action) {
+      if (box.action.type === "uri") window.open(box.action.uri, "_blank");
+      if (box.action.type === "message") alert(`[模擬訊息] ${box.action.text}`);
+    }
   };
 
   return (
-    <div style={style}>
+    <div style={style} onClick={box.action ? handleClick : undefined}>
       {box.contents.map((node: any, i: number) => (
         <FlexNode key={i} node={node} />
       ))}
@@ -182,4 +194,17 @@ function getSize(token: string) {
     xxl: "24px",
   };
   return spaceMap[token] || token;
+}
+
+function getCornerRadius(token: string) {
+  const radiusMap: Record<string, string> = {
+    none: "0px",
+    xs: "2px",
+    sm: "4px",
+    md: "8px",
+    lg: "12px",
+    xl: "16px",
+    xxl: "24px",
+  };
+  return radiusMap[token] || token;
 }
