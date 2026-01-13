@@ -23,6 +23,10 @@ function imagePublishable(img: ImageSource): boolean {
 }
 
 export function validateDoc(doc: DocModel): ValidationReport {
+  if (doc.type === "folder") {
+    return { status: "publishable", errors: [], warnings: [] };
+  }
+
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
 
@@ -90,7 +94,7 @@ export function validateDoc(doc: DocModel): ValidationReport {
   };
 
   if (doc.type === "bubble") checkSection(doc.section, "section", false);
-  else {
+  else if (doc.type === "carousel") {
     if (doc.cards.length < 1) errors.push(issue("error", "E_CAROUSEL_EMPTY", "Carousel 至少需要 1 張卡片", "cards"));
     if (doc.cards.length > 5) errors.push(issue("error", "E_CAROUSEL_TOO_MANY", "Carousel 最多只能 5 張卡片", "cards"));
     doc.cards.forEach((c, i) => checkSection(c.section, `cards[${i}].section`, true));

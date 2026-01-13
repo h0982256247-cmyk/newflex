@@ -24,9 +24,10 @@ export type Spacer = ComponentBase & { kind: "spacer"; size: "sm" | "md" | "lg" 
 export type FooterButton = ComponentBase & { kind: "footer_button"; label: string; action: Action; style: "primary" | "secondary"; bgColor: string; textColor: string; autoTextColor: boolean };
 
 export type Section = { hero: HeroImage[]; body: (TitleText | ParagraphText | KeyValueRow | ListBlock | Divider | Spacer)[]; footer: FooterButton[] };
-export type BubbleDoc = { type: "bubble"; title: string; section: Section };
-export type CarouselDoc = { type: "carousel"; title: string; cards: { id: string; section: Section }[] };
-export type DocModel = BubbleDoc | CarouselDoc;
+export type BubbleDoc = { type: "bubble"; title: string; section: Section; folderId?: string };
+export type CarouselDoc = { type: "carousel"; title: string; cards: { id: string; section: Section }[]; folderId?: string };
+export type FolderDoc = { type: "folder"; id: string; name: string; parentId?: string };
+export type DocModel = BubbleDoc | CarouselDoc | FolderDoc;
 
 export type ValidationIssue = { code: string; level: "error" | "warn"; message: string; path: string };
 export type ValidationReport = { status: "draft" | "previewable" | "publishable"; errors: ValidationIssue[]; warnings: ValidationIssue[] };

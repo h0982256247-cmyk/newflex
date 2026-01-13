@@ -157,6 +157,10 @@ function sectionToBubble(section: Section, docId?: string, token?: string, liffI
 }
 
 export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?: string) {
+  if (doc.type === "folder") {
+    return { type: "flex", altText: "Folder", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [] } } };
+  }
+
   if (doc.type === "bubble") {
     return {
       type: "flex",
@@ -166,7 +170,7 @@ export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?
   }
 
   // ✅ 保守：最多 10 頁，避免投遞失敗
-  const cards = Array.isArray(doc.cards) ? doc.cards.slice(0, 10) : [];
+  const cards = (doc.type === "carousel" && Array.isArray(doc.cards)) ? doc.cards.slice(0, 10) : [];
 
   return {
     type: "flex",
