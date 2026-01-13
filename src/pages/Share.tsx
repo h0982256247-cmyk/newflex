@@ -37,7 +37,6 @@ function parseUrlParams(): FullUrlParams {
         const inner = new URLSearchParams(queryPart);
         token = inner.get("token") || token;
         id = inner.get("id") || id;
-
         autoshare = inner.get("autoshare") === "1" || autoshare;
         fromLogin = inner.get("fromLogin") === "1" || fromLogin;
       } catch (e) {
@@ -46,7 +45,7 @@ function parseUrlParams(): FullUrlParams {
     }
   }
 
-  // 額外嘗試從 hash 解析（某些情境會用 hash）
+  // 某些情境會用 hash
   if (!token && !id && window.location.hash) {
     try {
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
@@ -98,13 +97,24 @@ export default function Share() {
     return window.location.href;
   }, [tokenParam, idParam]);
 
+  // LIFF HTTPS URL（備援用）
   const liffUrl = useMemo(() => {
     if (!liffId) return null;
     const sp = new URLSearchParams();
     if (tokenParam) sp.set("token", tokenParam);
     else if (idParam) sp.set("id", idParam);
-    // NOTE: Endpoint 若是 /share，可直接用 ?token=... / ?id=...
     return `https://liff.line.me/${liffId}${sp.toString() ? `?${sp.toString()}` : ""}`;
+  }, [liffId, tokenParam, idParam]);
+
+  // ✅ Deep link：line://app/{LIFF_ID}?token=...&autoshare=1
+  const deepLinkUrl = useMemo(() => {
+    if (!liffId) return null;
+    const sp = new URLSearchParams();
+    if (tokenParam) sp.set("token", tokenParam);
+    else if (idParam) sp.set("id", idParam);
+    sp.set("autoshare", "1");
+    // fromLogin 這裡不需要，因為 deep link 是為了進 LINE
+    return `line://app/${liffId}${sp.toString() ? `?${sp.toString()}` : ""}`;
   }, [liffId, tokenParam, idParam]);
 
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -126,7 +136,6 @@ export default function Share() {
         setLiffReady(true);
         console.log("[Share] LIFF initialized, isInClient:", liff.isInClient());
 
-        // init 後再 parse 一次（可能從 liff.state 才拿得到）
         const params = parseUrlParams();
         setUrlParams(params);
         setParamsReady(true);
@@ -168,7 +177,7 @@ export default function Share() {
   const contents = flexJson?.contents ?? null;
   const altText = flexJson?.altText ?? (docModel?.title || "Flex Message");
 
-  // ✅ autoshare：登入回來或導回來後，自動觸發一次
+  // ✅ autoshare：登入回來（或 deep link 回來）後，自動觸發一次
   useEffect(() => {
     if (!autoshare) return;
     if (!liffReady || loading || !contents) return;
@@ -176,7 +185,7 @@ export default function Share() {
 
     autoShareTriggered.current = true;
 
-    // ✅ 先把網址的 autoshare/fromLogin 清掉，避免 refresh 又重來
+    // ✅ 清掉 autoshare/fromLogin，避免 refresh 又重來
     try {
       const u = new URL(window.location.href);
       u.searchParams.delete("autoshare");
@@ -204,9 +213,7 @@ export default function Share() {
         throw new Error("carousel.contents 必須是 array");
       }
       const n = arr.length;
-      if (n > 10) {
-        throw new Error(`多頁（carousel bubble）超過上限：${n}（建議 <= 10）`);
-      }
+      if (n > 10) throw new Error(`多頁（carousel bubble）超過上限：${n}（建議 <= 10）`);
     }
   }
 
@@ -215,37 +222,48 @@ export default function Share() {
       setSharing(true);
       setToast(null);
 
-      // 若 LIFF 尚未 init 完成，先擋掉（避免 isInClient 誤判）
       if (!liffId) throw new Error("缺少 VITE_LIFF_ID");
+
+      // 確保 liff.init
       if (!liffReady) {
         await liff.init({ liffId });
         setLiffReady(true);
       }
 
-      // 不在 in-client：導向 LIFF（手機外部瀏覽器常用）
+      // ✅ 你要求：in-client=false 時，改成「自動用 deep link 在 LINE 開啟」
       if (!liff.isInClient()) {
-        if (!liffUrl) throw new Error("尚未設定 LIFF（缺少 VITE_LIFF_ID）");
-        const u = new URL(liffUrl);
-        u.searchParams.set("autoshare", "1");
-        window.location.href = u.toString();
+        if (!deepLinkUrl) throw new Error("尚未設定 LIFF（缺少 VITE_LIFF_ID）");
+
+        console.log("[Share] not in-client -> deep link open LINE:", deepLinkUrl);
+
+        // 先嘗試 deep link 喚起 LINE
+        window.location.href = deepLinkUrl;
+
+        // 備援：若環境不支援 deep link（例如某些瀏覽器/限制），延遲後改用 https liffUrl
+        if (liffUrl) {
+          setTimeout(() => {
+            // 若使用者已離開頁面就不會執行；若還在，就給備援
+            try {
+              window.location.href = `${liffUrl}${liffUrl.includes("?") ? "&" : "?"}autoshare=1`;
+            } catch {}
+          }, 1200);
+        }
+
         return;
       }
 
-      // ✅ B) in-client + shareApi=false：先 login，回來自動觸發一次再試
+      // B) in-client + shareApi=false：先 login，回來 autoshare=1 再試一次
       if (!liff.isApiAvailable("shareTargetPicker")) {
         if (!liff.isLoggedIn()) {
           const u = new URL(window.location.href);
           u.searchParams.set("autoshare", "1");
-          u.searchParams.set("fromLogin", "1"); // 防 loop + 方便 debug
-          // 注意：不要把網址越加越長；回來後我們會清掉 autoshare/fromLogin
+          u.searchParams.set("fromLogin", "1");
           const redirectUri = u.toString();
-
           console.log("[Share] shareApi=false, do liff.login ->", redirectUri);
           liff.login({ redirectUri });
           return;
         }
 
-        // 已登入仍不支援：代表是環境/權限/版本問題，login 也無法解
         setToast({
           type: "err",
           msg:
@@ -256,35 +274,20 @@ export default function Share() {
         return;
       }
 
-      // ✅ A) in-client + shareApi=true：直接分享
+      // A) in-client + shareApi=true：直接分享
       validateBeforeShare(contents);
 
-      const payload = {
-        type: "flex" as const,
-        altText,
-        contents,
-      };
+      const payload = { type: "flex" as const, altText, contents };
       const messages = [payload];
 
       console.log("===== SHARE PAYLOAD START =====");
-      console.log("[Share] messages.length =", messages.length);
-      console.log("[Share] contents.type =", contents?.type);
-      if (contents?.type === "carousel") {
-        console.log(
-          "[Share] carousel bubbles =",
-          Array.isArray(contents?.contents) ? contents.contents.length : -1
-        );
-      }
       console.log("[Share] payload JSON =", JSON.stringify(payload, null, 2));
       console.log("===== SHARE PAYLOAD END =====");
 
       const res = await liff.shareTargetPicker(messages);
 
-      if (res === null) {
-        setToast({ type: "err", msg: "已取消分享" });
-      } else {
-        setToast({ type: "ok", msg: "已傳送成功！" });
-      }
+      if (res === null) setToast({ type: "err", msg: "已取消分享" });
+      else setToast({ type: "ok", msg: "已傳送成功！" });
     } catch (e: any) {
       console.error("[Share] Error:", e);
       setToast({ type: "err", msg: e?.message || String(e) });
@@ -332,10 +335,19 @@ export default function Share() {
               </button>
             </div>
 
-            {/* 提示（你要 B 走 login，所以這裡不要用 isLoggedIn 當作電腦條件，只當文字提示即可） */}
-            {!isLineInApp() ? (
+            {/* 非 in-client 時提示 + 提供手動 deep link（避免某些瀏覽器阻擋自動跳轉） */}
+            {!liff.isInClient() && deepLinkUrl ? (
               <div className="mt-3 text-xs text-gray-500">
-                提示：若你不是在 LINE 內開啟，會先導向 LIFF；進入 LIFF 後才可彈出分享好友視窗。
+                提示：目前不在 LINE 內，已嘗試自動喚起 LINE。若未成功，請點這裡：
+                <a className="underline ml-1" href={deepLinkUrl}>
+                  用 LINE 開啟
+                </a>
+              </div>
+            ) : null}
+
+            {!isLineInApp() ? (
+              <div className="mt-2 text-xs text-gray-400">
+                分享連結：<span className="select-all">{shareUrl}</span>
               </div>
             ) : null}
           </div>
@@ -355,7 +367,7 @@ export default function Share() {
         </div>
 
         <div className="mt-6 text-center text-xs text-gray-400">
-          分享連結：<span className="select-all">{shareUrl}</span>
+          目前環境：{liffReady ? (liff.isInClient() ? "LINE in-client" : "Browser") : "初始化中…"}
         </div>
       </div>
     </div>
