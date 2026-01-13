@@ -256,7 +256,6 @@ export default function EditDraft() {
 
           <AccordionSection
             title="Body（內容）"
-            subtitle="至少 1 個元件"
             open={open === "body"}
             onToggle={() => setOpen(open === "body" ? "footer" : "body")}
             right={<span className="glass-badge">{section.body.filter((c: any) => c.enabled).length} 個</span>}
