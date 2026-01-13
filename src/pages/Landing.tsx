@@ -11,36 +11,21 @@ export default function Landing() {
       </div>
 
       <div className="max-w-3xl w-full z-10 relative">
-        <div className="glass-panel p-12 flex flex-col items-center text-center shadow-2xl backdrop-blur-xl border border-white/40">
-          <div className="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
+        <div className="glass-panel p-20 flex flex-col items-center text-center shadow-2xl backdrop-blur-xl border border-white/40">
+          <div className="text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-rose-500 mb-6 is-pink-title">
             柔兒數位
           </div>
-          <div className="text-2xl font-medium text-gray-700 mb-8 tracking-wide">
+          <div className="text-2xl font-medium text-gray-700 mb-12 tracking-wide">
             Flex Message Editor
           </div>
 
-          <div className="flex justify-center w-full mb-12">
+          <div className="flex justify-center w-full">
             <button
-              className="glass-btn text-lg px-8 py-3 rounded-full hover:scale-105 transition-transform duration-200 shadow-lg"
+              className="glass-btn text-xl px-12 py-4 rounded-full hover:scale-105 transition-transform duration-200 shadow-xl bg-gradient-to-r from-pink-50 to-rose-50 border-pink-200 hover:border-pink-300 text-pink-700"
               onClick={() => nav("/login")}
             >
               前往系統
             </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left">
-            <div className="glass-panel p-6 hover:bg-white/60 transition-colors">
-              <div className="font-semibold text-lg mb-2 text-blue-900">內建範本</div>
-              <div className="text-sm text-gray-600 leading-relaxed">提供多種預設版型，建立後立即可預覽效果，快速上手。</div>
-            </div>
-            <div className="glass-panel p-6 hover:bg-white/60 transition-colors">
-              <div className="font-semibold text-lg mb-2 text-purple-900">防呆驗證</div>
-              <div className="text-sm text-gray-600 leading-relaxed">自動檢查 JSON 格式與限制，錯誤發生時不會產生無效連結。</div>
-            </div>
-            <div className="glass-panel p-6 hover:bg-white/60 transition-colors">
-              <div className="font-semibold text-lg mb-2 text-indigo-900">固定版本</div>
-              <div className="text-sm text-gray-600 leading-relaxed">每次發布皆產生唯一版本號與連結，確保舊訊息不受影響。</div>
-            </div>
           </div>
         </div>
 
