@@ -5,13 +5,19 @@ import FlexPreview from "@/components/FlexPreview";
 import { resolveDocIdToToken, resolveShareToken } from "@/lib/db";
 import { isLineInApp } from "@/lib/lineEnv";
 
-type FullUrlParams = { token: string | null; id: string | null; autoshare: boolean };
+type FullUrlParams = {
+  token: string | null;
+  id: string | null;
+  autoshare: boolean;
+  fromLogin: boolean;
+};
 
 function parseUrlParams(): FullUrlParams {
   const sp = new URLSearchParams(window.location.search);
   let token = sp.get("token");
   let id = sp.get("id");
   let autoshare = sp.get("autoshare") === "1";
+  let fromLogin = sp.get("fromLogin") === "1";
 
   // LIFF 可能會把參數包在 liff.state
   if (!token && !id) {
@@ -21,42 +27,52 @@ function parseUrlParams(): FullUrlParams {
         const decoded = decodeURIComponent(liffState);
         // liff.state 可能是 "?token=xxx" 或 "token=xxx" 或 "/share?token=xxx"
         let queryPart = decoded;
+
         if (decoded.includes("?")) {
           queryPart = decoded.split("?").pop() || "";
         } else if (decoded.startsWith("/")) {
-          // 路徑格式，沒有參數
           queryPart = "";
         }
 
         const inner = new URLSearchParams(queryPart);
         token = inner.get("token") || token;
         id = inner.get("id") || id;
+
         autoshare = inner.get("autoshare") === "1" || autoshare;
+        fromLogin = inner.get("fromLogin") === "1" || fromLogin;
       } catch (e) {
         console.error("[parseUrlParams] Failed to parse liff.state:", e);
       }
     }
   }
 
-  // 額外嘗試從 hash 解析（某些 LIFF 版本會用 hash）
+  // 額外嘗試從 hash 解析（某些情境會用 hash）
   if (!token && !id && window.location.hash) {
     try {
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
       token = hashParams.get("token") || token;
       id = hashParams.get("id") || id;
+      autoshare = hashParams.get("autoshare") === "1" || autoshare;
+      fromLogin = hashParams.get("fromLogin") === "1" || fromLogin;
     } catch (e) {
       console.error("[parseUrlParams] Failed to parse hash:", e);
     }
   }
 
-  console.log("[parseUrlParams] Resolved:", { token, id, autoshare });
-  return { token, id, autoshare };
+  console.log("[parseUrlParams] Resolved:", { token, id, autoshare, fromLogin });
+  return { token, id, autoshare, fromLogin };
 }
 
 type Toast = { type: "ok" | "err"; msg: string } | null;
 
 export default function Share() {
-  const [urlParams, setUrlParams] = useState<FullUrlParams>({ token: null, id: null, autoshare: false });
+  const [urlParams, setUrlParams] = useState<FullUrlParams>({
+    token: null,
+    id: null,
+    autoshare: false,
+    fromLogin: false,
+  });
+
   const [loading, setLoading] = useState(true);
   const [docModel, setDocModel] = useState<any>(null);
   const [flexJson, setFlexJson] = useState<any>(null);
@@ -65,6 +81,7 @@ export default function Share() {
 
   const [liffReady, setLiffReady] = useState(false);
   const [paramsReady, setParamsReady] = useState(false);
+
   const autoShareTriggered = useRef(false);
 
   const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
@@ -72,6 +89,7 @@ export default function Share() {
   const tokenParam = urlParams.token;
   const idParam = urlParams.id;
   const autoshare = urlParams.autoshare;
+  const fromLogin = urlParams.fromLogin;
 
   const shareUrl = useMemo(() => {
     const base = `${window.location.origin}${window.location.pathname}`;
@@ -82,12 +100,11 @@ export default function Share() {
 
   const liffUrl = useMemo(() => {
     if (!liffId) return null;
-    const q = tokenParam
-      ? `token=${encodeURIComponent(tokenParam)}`
-      : idParam
-        ? `id=${encodeURIComponent(idParam)}`
-        : "";
-    return `https://liff.line.me/${liffId}${q ? "?" + q : ""}`;
+    const sp = new URLSearchParams();
+    if (tokenParam) sp.set("token", tokenParam);
+    else if (idParam) sp.set("id", idParam);
+    // NOTE: Endpoint 若是 /share，可直接用 ?token=... / ?id=...
+    return `https://liff.line.me/${liffId}${sp.toString() ? `?${sp.toString()}` : ""}`;
   }, [liffId, tokenParam, idParam]);
 
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -95,7 +112,6 @@ export default function Share() {
   // 初始化 LIFF 並解析 URL 參數
   useEffect(() => {
     (async () => {
-      // 先嘗試解析 URL 參數（非 LIFF 環境可能直接有參數）
       const initialParams = parseUrlParams();
 
       if (!liffId) {
@@ -110,21 +126,19 @@ export default function Share() {
         setLiffReady(true);
         console.log("[Share] LIFF initialized, isInClient:", liff.isInClient());
 
-        // LIFF 初始化後重新解析參數（可能從 liff.state 取得）
+        // init 後再 parse 一次（可能從 liff.state 才拿得到）
         const params = parseUrlParams();
-        console.log("[Share] After LIFF init, params:", params);
         setUrlParams(params);
         setParamsReady(true);
       } catch (e: any) {
         console.error("[Share] LIFF init error:", e);
-        // 即使 LIFF 初始化失敗，也嘗試使用初始參數
         setUrlParams(initialParams);
         setParamsReady(true);
       }
     })();
   }, [liffId]);
 
-  // 載入分享資料（等待參數解析完成）
+  // 載入分享資料
   useEffect(() => {
     if (!paramsReady) return;
 
@@ -132,7 +146,6 @@ export default function Share() {
       try {
         setLoading(true);
 
-        // resolve share token if only have id
         let token = tokenParam;
         if (!token && idParam) {
           token = (await resolveDocIdToToken(idParam)) || null;
@@ -155,21 +168,27 @@ export default function Share() {
   const contents = flexJson?.contents ?? null;
   const altText = flexJson?.altText ?? (docModel?.title || "Flex Message");
 
-  // autoshare: 自動觸發分享（⚠️ 建議正式上線可關掉，只保留點擊觸發更穩）
+  // ✅ autoshare：登入回來或導回來後，自動觸發一次
   useEffect(() => {
-    if (
-      autoshare &&
-      liffReady &&
-      !loading &&
-      !!contents &&
-      !autoShareTriggered.current
-    ) {
-      autoShareTriggered.current = true;
-      setTimeout(() => {
-        triggerShare();
-      }, 300);
-    }
-  }, [autoshare, liffReady, loading, contents]);
+    if (!autoshare) return;
+    if (!liffReady || loading || !contents) return;
+    if (autoShareTriggered.current) return;
+
+    autoShareTriggered.current = true;
+
+    // ✅ 先把網址的 autoshare/fromLogin 清掉，避免 refresh 又重來
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("autoshare");
+      u.searchParams.delete("fromLogin");
+      window.history.replaceState({}, "", u.toString());
+    } catch {}
+
+    setTimeout(() => {
+      triggerShare();
+    }, 300);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoshare, fromLogin, liffReady, loading, contents]);
 
   function validateBeforeShare(c: any) {
     if (!c) throw new Error("此內容尚未準備好（沒有 flex contents）");
@@ -185,7 +204,6 @@ export default function Share() {
         throw new Error("carousel.contents 必須是 array");
       }
       const n = arr.length;
-      // 保守上限 <= 10（最穩）
       if (n > 10) {
         throw new Error(`多頁（carousel bubble）超過上限：${n}（建議 <= 10）`);
       }
@@ -197,33 +215,50 @@ export default function Share() {
       setSharing(true);
       setToast(null);
 
-      // 不在 LINE in-app：直接導向 LIFF URL（不要呼叫 liff.login）
+      // 若 LIFF 尚未 init 完成，先擋掉（避免 isInClient 誤判）
+      if (!liffId) throw new Error("缺少 VITE_LIFF_ID");
+      if (!liffReady) {
+        await liff.init({ liffId });
+        setLiffReady(true);
+      }
+
+      // 不在 in-client：導向 LIFF（手機外部瀏覽器常用）
       if (!liff.isInClient()) {
         if (!liffUrl) throw new Error("尚未設定 LIFF（缺少 VITE_LIFF_ID）");
-
-        // 帶 autoshare=1，進入 LIFF 後自動觸發分享
         const u = new URL(liffUrl);
         u.searchParams.set("autoshare", "1");
         window.location.href = u.toString();
         return;
       }
 
-      // 確保 LIFF 已初始化
-      if (!liffReady) {
-        if (!liffId) throw new Error("缺少 VITE_LIFF_ID");
-        await liff.init({ liffId });
-        setLiffReady(true);
-      }
-
-      // 檢查 API 可用性
+      // ✅ B) in-client + shareApi=false：先 login，回來自動觸發一次再試
       if (!liff.isApiAvailable("shareTargetPicker")) {
-        throw new Error("此環境不支援分享好友，或未開啟 ShareTargetPicker 權限（請檢查 LINE Developers Console）。");
+        if (!liff.isLoggedIn()) {
+          const u = new URL(window.location.href);
+          u.searchParams.set("autoshare", "1");
+          u.searchParams.set("fromLogin", "1"); // 防 loop + 方便 debug
+          // 注意：不要把網址越加越長；回來後我們會清掉 autoshare/fromLogin
+          const redirectUri = u.toString();
+
+          console.log("[Share] shareApi=false, do liff.login ->", redirectUri);
+          liff.login({ redirectUri });
+          return;
+        }
+
+        // 已登入仍不支援：代表是環境/權限/版本問題，login 也無法解
+        setToast({
+          type: "err",
+          msg:
+            "已登入 LINE，但此環境仍不支援 shareTargetPicker。\n" +
+            "可能原因：LINE 版本過舊、桌機環境限制，或 LIFF 後台未開 ShareTargetPicker。\n" +
+            "請更新 LINE App，或改用手機 LINE 開啟此連結再分享。",
+        });
+        return;
       }
 
-      // 送出前檢查 contents 結構
+      // ✅ A) in-client + shareApi=true：直接分享
       validateBeforeShare(contents);
 
-      // 建立 payload
       const payload = {
         type: "flex" as const,
         altText,
@@ -235,15 +270,16 @@ export default function Share() {
       console.log("[Share] messages.length =", messages.length);
       console.log("[Share] contents.type =", contents?.type);
       if (contents?.type === "carousel") {
-        console.log("[Share] carousel bubbles =", Array.isArray(contents?.contents) ? contents.contents.length : -1);
+        console.log(
+          "[Share] carousel bubbles =",
+          Array.isArray(contents?.contents) ? contents.contents.length : -1
+        );
       }
       console.log("[Share] payload JSON =", JSON.stringify(payload, null, 2));
       console.log("===== SHARE PAYLOAD END =====");
 
-      // 呼叫 shareTargetPicker
       const res = await liff.shareTargetPicker(messages);
 
-      // 正確判斷：取消是 null，成功是非 null
       if (res === null) {
         setToast({ type: "err", msg: "已取消分享" });
       } else {
@@ -257,69 +293,71 @@ export default function Share() {
     }
   }
 
-async function onPrimaryClick() {
-  await triggerShare();
-}
+  async function onPrimaryClick() {
+    await triggerShare();
+  }
 
-return (
-  <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6">
-          <div className="text-xl font-semibold text-gray-900">分享 Flex Message</div>
-          <div className="mt-2 text-sm text-gray-500">
-            這頁面的預覽即為實際分享給好友的內容（published 版本）。
-          </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6">
+            <div className="text-xl font-semibold text-gray-900">分享 Flex Message</div>
+            <div className="mt-2 text-sm text-gray-500">
+              這頁面的預覽即為實際分享給好友的內容（published 版本）。
+            </div>
 
-          {toast ? (
-            <div
-              className={`mt-4 rounded-xl p-3 text-sm whitespace-pre-wrap ${toast.type === "ok"
-                ? "bg-green-50 text-green-700 border border-green-100"
-                : "bg-red-50 text-red-700 border border-red-100"
+            {toast ? (
+              <div
+                className={`mt-4 rounded-xl p-3 text-sm whitespace-pre-wrap ${
+                  toast.type === "ok"
+                    ? "bg-green-50 text-green-700 border border-green-100"
+                    : "bg-red-50 text-red-700 border border-red-100"
                 }`}
-            >
-              {toast.msg}
+              >
+                {toast.msg}
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex gap-3">
+              <button className="glass-btn flex-1" disabled={loading || sharing} onClick={onPrimaryClick}>
+                {sharing ? "處理中…" : "分享給好友"}
+              </button>
+
+              <button
+                className="glass-btn glass-btn--secondary"
+                onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
+                看預覽
+              </button>
             </div>
-          ) : null}
 
-          <div className="mt-6 flex gap-3">
-            <button className="glass-btn flex-1" disabled={loading || sharing} onClick={onPrimaryClick}>
-              {sharing ? "處理中…" : "分享給好友"}
-            </button>
-
-            <button
-              className="glass-btn glass-btn--secondary"
-              onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            >
-              看預覽
-            </button>
+            {/* 提示（你要 B 走 login，所以這裡不要用 isLoggedIn 當作電腦條件，只當文字提示即可） */}
+            {!isLineInApp() ? (
+              <div className="mt-3 text-xs text-gray-500">
+                提示：若你不是在 LINE 內開啟，會先導向 LIFF；進入 LIFF 後才可彈出分享好友視窗。
+              </div>
+            ) : null}
           </div>
 
-          {!isLineInApp() && liffReady && !liff.isLoggedIn() ? (
-            <div className="mt-3 text-xs text-gray-500">
-              提示：電腦版需先登入 LINE 帳號才能使用分享功能。點擊按鈕將導向登入頁面。
+          <div ref={previewRef} className="border-t border-gray-100 bg-gray-50 p-6">
+            <div className="font-semibold text-gray-900">預覽</div>
+            <div className="mt-4">
+              {loading ? (
+                <div className="text-sm text-gray-500">載入中…</div>
+              ) : contents ? (
+                <FlexPreview doc={docModel} flex={flexJson} />
+              ) : (
+                <div className="text-sm text-gray-500">沒有可預覽的內容</div>
+              )}
             </div>
-          ) : null}
-        </div>
-
-        <div ref={previewRef} className="border-t border-gray-100 bg-gray-50 p-6">
-          <div className="font-semibold text-gray-900">預覽</div>
-          <div className="mt-4">
-            {loading ? (
-              <div className="text-sm text-gray-500">載入中…</div>
-            ) : contents ? (
-              <FlexPreview doc={docModel} flex={flexJson} />
-            ) : (
-              <div className="text-sm text-gray-500">沒有可預覽的內容</div>
-            )}
           </div>
         </div>
-      </div>
 
-      <div className="mt-6 text-center text-xs text-gray-400">
-        分享連結：<span className="select-all">{shareUrl}</span>
+        <div className="mt-6 text-center text-xs text-gray-400">
+          分享連結：<span className="select-all">{shareUrl}</span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 }
