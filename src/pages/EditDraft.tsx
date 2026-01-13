@@ -237,6 +237,7 @@ export default function EditDraft() {
                   }}
                 >
                   <option value="20:13">20:13 (標準卡片)</option>
+                  <option value="9:16">9:16 (滿版/直向)</option>
                   <option value="1.91:1">1.91:1 (矩形)</option>
                   <option value="16:9">16:9 (寬螢幕)</option>
                   <option value="4:3">4:3 (標準)</option>
