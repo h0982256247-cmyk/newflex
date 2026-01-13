@@ -111,35 +111,24 @@ function sectionToBubble(section: Section, docId?: string) {
       layout: "vertical",
       spacing: "sm",
       contents: footerButtons.map((b: FooterButton) => {
-        const btn: any = {
-          type: "button",
-          style: "primary",
-          color: isHexColor(b.bgColor) ? b.bgColor : "#0A84FF",
-          action: actionToFlex(b.action, b.label, docId),
-          height: "sm",
+        // 統一使用 box 結構，可同時自訂文字色與背景色
+        return {
+          type: "box",
+          layout: "vertical",
+          contents: [{
+            type: "text",
+            text: b.label,
+            color: isHexColor(b.textColor) ? b.textColor : "#FFFFFF",
+            align: "center",
+            weight: "bold",
+          }],
+          backgroundColor: isHexColor(b.bgColor) ? b.bgColor : "#0A84FF",
+          cornerRadius: "md",
+          justifyContent: "center",
+          alignItems: "center",
+          paddingAll: "10px",
+          action: actionToFlex(b.action, undefined, docId),
         };
-        // LINE Flex 按鈕文字色需要用 style: link 或自訂 box 才能改
-        // 但 style: primary 時，可用 adjustMode 或只能用預設白色
-        // 這裡改用 box 包 text 來實現自訂文字色
-        if (b.textColor && isHexColor(b.textColor) && b.textColor.toUpperCase() !== "#FFFFFF") {
-          return {
-            type: "box",
-            layout: "vertical",
-            contents: [{
-              type: "text",
-              text: b.label,
-              color: b.textColor,
-              align: "center",
-              weight: "bold",
-              size: "sm",
-            }],
-            backgroundColor: isHexColor(b.bgColor) ? b.bgColor : "#0A84FF",
-            cornerRadius: "md",
-            paddingAll: "12px",
-            action: actionToFlex(b.action, undefined, docId),
-          };
-        }
-        return btn;
       }),
     }
     : undefined;
