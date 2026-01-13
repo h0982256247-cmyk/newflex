@@ -58,7 +58,8 @@ export async function publishDoc(id: string) {
 
   // 先產生 token，再用 token 建立 flex（讓分享按鈕使用正確的 token URL）
   const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-  const flex = buildFlex(doc, id, token);
+  const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
+  const flex = buildFlex(doc, id, token, liffId);
   const validation_report = validateDoc(doc);
 
   const { data: ver, error: verErr } = await supabase.from("doc_versions").insert({
