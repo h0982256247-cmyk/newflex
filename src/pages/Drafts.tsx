@@ -130,7 +130,7 @@ export default function Drafts() {
             return (
               <div
                 key={r.id}
-                className={`glass-panel p-4 transition-all ${isFolder ? "bg-amber-50/50 hover:bg-amber-100/50" : ""}`}
+                className={`glass-panel p-4 transition-all ${isFolder ? "bg-amber-100/80 hover:bg-amber-200/80" : ""}`}
                 draggable={true}
                 onDragStart={(e) => e.dataTransfer.setData("text/plain", r.id)}
                 onDragOver={(e) => {
