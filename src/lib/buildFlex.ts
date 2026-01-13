@@ -20,8 +20,6 @@ function actionToFlex(a: Action, label?: string, docId?: string) {
   if (a.type === "uri") return { type: "uri", uri: a.uri, ...common };
   if (a.type === "message") return { type: "message", text: a.text, ...common };
   if (a.type === "share") {
-    // Share action usually doesn't have a label in the action itself when used in certain contexts,
-    // but for a Button component, the label property on the action object is what determines the button text.
     return { type: "uri", uri: buildLiffShareUrl(docId), ...common };
   }
   return { type: "uri", uri: "https://example.com", ...common };

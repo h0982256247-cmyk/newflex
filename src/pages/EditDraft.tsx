@@ -25,10 +25,9 @@ export default function EditDraft() {
   const [activeShare, setActiveShare] = useState<{ token: string; version_no: number } | null>(null);
   const saveTimer = useRef<number | null>(null);
 
-  // 分享連結使用 LIFF URL 帶 autoshare=1 格式
-  const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
-  const shareUrl = activeShare && liffId
-    ? `https://liff.line.me/${liffId}?token=${activeShare.token}&autoshare=1`
+  // 分享連結使用正式網址格式
+  const shareUrl = activeShare
+    ? `https://newcard.zeabur.app/share?token=${activeShare.token}`
     : null;
 
   useEffect(() => {
