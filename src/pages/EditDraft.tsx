@@ -13,6 +13,13 @@ import { validateDoc } from "@/lib/validate";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+function moveItem<T>(arr: T[], from: number, to: number): T[] {
+  const next = [...arr];
+  const [removed] = next.splice(from, 1);
+  next.splice(to, 0, removed);
+  return next;
+}
+
 export default function EditDraft() {
   const { id } = useParams();
   const nav = useNavigate();
@@ -286,10 +293,27 @@ export default function EditDraft() {
                 <div key={c.id} className="glass-panel p-4">
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-sm">{idx + 1}. {c.kind}</div>
-                    <button className="glass-btn glass-btn--secondary px-3 py-2 text-xs" onClick={() => {
-                      const next = [...section.body]; next.splice(idx, 1);
-                      setSection({ ...section, body: next.length ? next : section.body });
-                    }}>刪除</button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        className="glass-btn glass-btn--secondary p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500"
+                        disabled={idx === 0}
+                        onClick={() => setSection({ ...section, body: moveItem(section.body, idx, idx - 1) })}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6" /></svg>
+                      </button>
+                      <button
+                        className="glass-btn glass-btn--secondary p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500"
+                        disabled={idx === section.body.length - 1}
+                        onClick={() => setSection({ ...section, body: moveItem(section.body, idx, idx + 1) })}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                      </button>
+                      <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                      <button className="glass-btn glass-btn--secondary px-3 py-1.5 text-xs text-red-600 hover:bg-red-50" onClick={() => {
+                        const next = [...section.body]; next.splice(idx, 1);
+                        setSection({ ...section, body: next.length ? next : section.body });
+                      }}>刪除</button>
+                    </div>
                   </div>
 
                   {(c.kind === "title" || c.kind === "paragraph") ? (
@@ -369,10 +393,27 @@ export default function EditDraft() {
                 <div key={b.id} className="glass-panel p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-sm">按鈕 {idx + 1}</div>
-                    <button className="glass-btn glass-btn--secondary px-3 py-2 text-xs" onClick={() => {
-                      const next = section.footer.filter((_: any, i: number) => i !== idx);
-                      setSection({ ...section, footer: next });
-                    }}>刪除</button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        className="glass-btn glass-btn--secondary p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500"
+                        disabled={idx === 0}
+                        onClick={() => setSection({ ...section, footer: moveItem(section.footer, idx, idx - 1) })}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6" /></svg>
+                      </button>
+                      <button
+                        className="glass-btn glass-btn--secondary p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500"
+                        disabled={idx === section.footer.length - 1}
+                        onClick={() => setSection({ ...section, footer: moveItem(section.footer, idx, idx + 1) })}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                      </button>
+                      <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                      <button className="glass-btn glass-btn--secondary px-3 py-1.5 text-xs text-red-600 hover:bg-red-50" onClick={() => {
+                        const next = section.footer.filter((_: any, i: number) => i !== idx);
+                        setSection({ ...section, footer: next });
+                      }}>刪除</button>
+                    </div>
                   </div>
 
                   <div>
