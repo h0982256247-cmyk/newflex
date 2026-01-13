@@ -139,13 +139,16 @@ function sectionToBubble(section: Section, docId?: string, token?: string, liffI
 
   const bubble: any = {
     type: "bubble",
-    body: {
+  };
+
+  if (bodyContents.length > 0) {
+    bubble.body = {
       type: "box",
       layout: "vertical",
       spacing: "md",
-      contents: bodyContents.length ? bodyContents : [{ type: "text", text: "（空）", size: "sm", color: "#8E8E93" }],
-    },
-  };
+      contents: bodyContents,
+    };
+  }
 
   if (hero) bubble.hero = hero;
   if (footer) bubble.footer = footer;
