@@ -310,7 +310,7 @@ export default function EditDraft() {
                       <div className="w-px h-4 bg-gray-300 mx-1"></div>
                       <button className="glass-btn glass-btn--secondary px-3 py-1.5 text-xs text-red-600 hover:bg-red-50" onClick={() => {
                         const next = [...section.body]; next.splice(idx, 1);
-                        setSection({ ...section, body: next.length ? next : section.body });
+                        setSection({ ...section, body: next });
                       }}>刪除</button>
                     </div>
                   </div>
