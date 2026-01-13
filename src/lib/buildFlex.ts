@@ -5,22 +5,24 @@ function sizeMap(s: SizeToken): string {
   return s;
 }
 
-function buildLiffShareUrl(docId?: string) {
-  const liffId = import.meta.env.VITE_LIFF_ID || "YOUR_LIFF_ID";
-  const targetId = docId || "PREVIEW_MODE";
-
-  // ✅ 最穩寫法：用 liff.state 帶入 SPA 路由與 query
-  // 例：https://liff.line.me/{LIFF_ID}?liff.state=/share?id=xxx&autoshare=1
-  const state = `/share?id=${encodeURIComponent(targetId)}&autoshare=1`;
-  return `https://liff.line.me/${liffId}?liff.state=${encodeURIComponent(state)}`;
+function buildShareUrl(token?: string, docId?: string) {
+  // 有 token 時使用正式分享連結格式
+  if (token) {
+    return `https://newcard.zeabur.app/share?token=${token}`;
+  }
+  // 預覽模式：使用 docId
+  if (docId) {
+    return `https://newcard.zeabur.app/share?id=${docId}`;
+  }
+  return "https://newcard.zeabur.app/share";
 }
 
-function actionToFlex(a: Action, label?: string, docId?: string) {
+function actionToFlex(a: Action, label?: string, docId?: string, token?: string) {
   const common = label ? { label } : {};
   if (a.type === "uri") return { type: "uri", uri: a.uri, ...common };
   if (a.type === "message") return { type: "message", text: a.text, ...common };
   if (a.type === "share") {
-    return { type: "uri", uri: buildLiffShareUrl(docId), ...common };
+    return { type: "uri", uri: buildShareUrl(token, docId), ...common };
   }
   return { type: "uri", uri: "https://example.com", ...common };
 }
@@ -32,7 +34,7 @@ function safeHttpsUrl(url?: string) {
   return url;
 }
 
-function sectionToBubble(section: Section, docId?: string) {
+function sectionToBubble(section: Section, docId?: string, token?: string) {
   const heroImg = section.hero.find((x: any) => x.enabled && x.kind === "hero_image") as any | undefined;
 
   const heroUrl = heroImg ? safeHttpsUrl(heroImg?.image?.url) : null;
@@ -80,7 +82,7 @@ function sectionToBubble(section: Section, docId?: string) {
           { type: "text", text: c.value, size: "sm", color: "#111111", flex: 5, wrap: true },
         ],
       };
-      if (c.action) row.action = actionToFlex(c.action, undefined, docId);
+      if (c.action) row.action = actionToFlex(c.action, undefined, docId, token);
       bodyContents.push(row);
     }
 
@@ -125,7 +127,7 @@ function sectionToBubble(section: Section, docId?: string) {
           justifyContent: "center",
           alignItems: "center",
           paddingAll: "10px",
-          action: actionToFlex(b.action, undefined, docId),
+          action: actionToFlex(b.action, undefined, docId, token),
         };
       }),
     }
@@ -147,12 +149,12 @@ function sectionToBubble(section: Section, docId?: string) {
   return bubble;
 }
 
-export function buildFlex(doc: DocModel, docId?: string) {
+export function buildFlex(doc: DocModel, docId?: string, token?: string) {
   if (doc.type === "bubble") {
     return {
       type: "flex",
       altText: doc.title || "Flex Message",
-      contents: sectionToBubble(doc.section, docId),
+      contents: sectionToBubble(doc.section, docId, token),
     };
   }
 
@@ -164,7 +166,7 @@ export function buildFlex(doc: DocModel, docId?: string) {
     altText: doc.title || "Flex Message",
     contents: {
       type: "carousel",
-      contents: cards.map((c) => sectionToBubble(c.section, docId)),
+      contents: cards.map((c) => sectionToBubble(c.section, docId, token)),
     },
   };
 }

@@ -56,7 +56,9 @@ export async function publishDoc(id: string) {
   if (lastErr) throw lastErr;
   const nextNo = (last?.[0]?.version_no || 0) + 1;
 
-  const flex = buildFlex(doc, id);
+  // 先產生 token，再用 token 建立 flex（讓分享按鈕使用正確的 token URL）
+  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+  const flex = buildFlex(doc, id, token);
   const validation_report = validateDoc(doc);
 
   const { data: ver, error: verErr } = await supabase.from("doc_versions").insert({
@@ -65,8 +67,6 @@ export async function publishDoc(id: string) {
   if (verErr) throw verErr;
 
   await supabase.from("shares").update({ is_active: false }).eq("doc_id", id).eq("owner_id", user.id);
-
-  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
   const { error: sErr } = await supabase.from("shares").insert({ owner_id: user.id, doc_id: id, version_id: ver.id, token, is_active: true });
   if (sErr) throw sErr;
 
