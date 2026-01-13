@@ -6,7 +6,7 @@ import { AccordionSection } from "@/components/Accordion";
 import FlexPreview from "@/components/FlexPreview";
 import ColorPicker, { AutoTextColorHint } from "@/components/ColorPicker";
 import { buildFlex } from "@/lib/buildFlex";
-import { getDoc, saveDoc, createTemplateFromDoc } from "@/lib/db";
+import { getDoc, saveDoc, createTemplateFromDoc, getActiveShareForDoc } from "@/lib/db";
 import { DocModel, FooterButton, ImageSource } from "@/lib/types";
 import { uid, autoTextColor } from "@/lib/utils";
 import { validateDoc } from "@/lib/validate";
@@ -22,13 +22,22 @@ export default function EditDraft() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [viewMode, setViewMode] = useState<"preview" | "json">("preview");
   const [jsonCode, setJsonCode] = useState<string | null>(null);
+  const [activeShare, setActiveShare] = useState<{ token: string; version_no: number } | null>(null);
   const saveTimer = useRef<number | null>(null);
+
+  const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
+  const liffShareUrl = activeShare && liffId
+    ? `https://liff.line.me/${liffId}?token=${activeShare.token}`
+    : null;
 
   useEffect(() => {
     (async () => {
       if (!id) return;
       const row = await getDoc(id);
       setDoc(row.content);
+      // 取得已發布的分享連結
+      const share = await getActiveShareForDoc(id);
+      setActiveShare(share);
     })();
   }, [id]);
 
@@ -397,7 +406,7 @@ export default function EditDraft() {
                         <input
                           className={`glass-input w-full ${b.action.type === "share" ? "bg-gray-100 opacity-60 cursor-not-allowed" : ""}`}
                           disabled={b.action.type === "share"}
-                          value={b.action.type === "uri" ? b.action.uri : b.action.type === "message" ? b.action.text : "發布後自動產生 LIFF 分享連結"}
+                          value={b.action.type === "uri" ? b.action.uri : b.action.type === "message" ? b.action.text : (liffShareUrl || "尚未發布，請先至預覽頁發布")}
                           onChange={(e) => {
                             if (b.action.type === "share") return;
                             const next = [...section.footer];
@@ -407,6 +416,8 @@ export default function EditDraft() {
                           }}
                         />
                         {b.action.type === "uri" ? <div className="mt-1 text-xs opacity-70">僅支援 https://、line://、liff://</div> : null}
+                        {b.action.type === "share" && !liffShareUrl ? <div className="mt-1 text-xs text-amber-600">請先至「預覽與發布」頁面發布後，連結會自動顯示</div> : null}
+                        {b.action.type === "share" && liffShareUrl ? <div className="mt-1 text-xs text-green-600">已發布 v{activeShare?.version_no}</div> : null}
                       </div>
                     </div>
                   </div>
