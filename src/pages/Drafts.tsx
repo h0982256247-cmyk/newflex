@@ -83,33 +83,47 @@ export default function Drafts() {
 
   return (
     <div className="glass-bg min-h-screen">
-      <div className="mx-auto max-w-5xl px-4 py-6">
-        <div className="glass-panel p-4 flex items-center justify-between sticky top-0 z-10">
-          <div>
-            <div className="text-xl font-semibold flex items-center gap-2">
-              <span
-                className={`cursor-pointer hover:text-blue-600 ${currentFolderId ? "" : "text-black"}`}
-                onClick={() => setCurrentFolderId(undefined)}
-              >
-                草稿
-              </span>
-              {currentFolder && (
-                <>
-                  <span className="text-gray-400">/</span>
-                  <span>{currentFolder.content.name || currentFolder.title}</span>
-                </>
-              )}
-            </div>
-            <div className="text-sm opacity-70">
-              {currentFolderId ? "拖曳檔案至上方「草稿」可移出資料夾" : "建立資料夾以分類整理"}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button className="glass-btn glass-btn--secondary" onClick={handleCreateFolder}>+ 資料夾</button>
-            <button className="glass-btn" onClick={() => nav("/drafts/new")}>新增草稿</button>
-            <button className="glass-btn glass-btn--secondary" onClick={async () => { await supabase.auth.signOut(); nav("/"); }}>登出</button>
-          </div>
+      <div className="h-16 bg-white/95 border-b border-gray-200 backdrop-blur-sm px-6 flex items-center justify-between sticky top-0 z-20">
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-semibold text-gray-900 tracking-tight flex items-center gap-2">
+            <span
+              className={`cursor-pointer transition-colors ${currentFolderId ? "text-gray-500 hover:text-gray-900" : "text-gray-900"}`}
+              onClick={() => setCurrentFolderId(undefined)}
+            >
+              我的卡片
+            </span>
+            {currentFolder && (
+              <>
+                <span className="text-gray-400 text-sm">/</span>
+                <span className="text-gray-900">{currentFolder.content.name || currentFolder.title}</span>
+              </>
+            )}
+          </h1>
         </div>
+        <div className="flex items-center gap-3">
+          <button
+            className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200/50"
+            onClick={handleCreateFolder}
+          >
+            ＋ 資料夾
+          </button>
+          <button
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-200/50 rounded-lg transition-all"
+            onClick={() => nav("/drafts/new")}
+          >
+            新增草稿
+          </button>
+          <div className="w-px h-6 bg-gray-200 mx-1"></div>
+          <button
+            className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-colors"
+            onClick={async () => { if (confirm("確定要登出嗎？")) { await supabase.auth.signOut(); nav("/"); } }}
+            title="登出"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+          </button>
+        </div>
+      </div>
+      <div className="mx-auto max-w-5xl px-4 py-6">
 
         {currentFolderId && (
           <div
@@ -192,6 +206,6 @@ export default function Drafts() {
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 }
