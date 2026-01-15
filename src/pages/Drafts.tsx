@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { listDocs, deleteDoc } from "@/lib/db";
+import { listDocs, deleteDoc, createDoc, saveDoc } from "@/lib/db";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 
@@ -45,7 +45,7 @@ export default function Drafts() {
     if (!name?.trim()) return;
     try {
       const folderDoc = { type: "folder", id: crypto.randomUUID(), name };
-      await import("@/lib/db").then(m => m.createDoc(folderDoc as any));
+      await createDoc(folderDoc as any);
       await load();
     } catch (e: any) {
       alert(e.message || "建立資料夾失敗");
@@ -57,15 +57,14 @@ export default function Drafts() {
     const docId = e.dataTransfer.getData("text/plain");
     if (!docId) return;
 
-    // Don't drop into itself or same folder
     const doc = rows.find(r => r.id === docId);
     if (!doc) return;
-    if (doc.id === targetFolderId) return; // Can't drop folder into self
+    if (doc.content.type === "folder") return; // Don't allow nesting folders for now
     if (doc.content.folderId === targetFolderId) return; // Already in folder
 
     try {
       const newContent = { ...doc.content, folderId: targetFolderId };
-      await import("@/lib/db").then(m => m.saveDoc(docId, newContent));
+      await saveDoc(docId, newContent);
       await load();
     } catch (e: any) {
       console.error(e);
@@ -73,34 +72,20 @@ export default function Drafts() {
     }
   }
 
-  // Filter rows
-  const currentRows = rows.filter(r => {
-    // If it's the current folder itself, don't show it inside itself?
-    // No, we are listing children.
-    const fId = r.content.folderId;
-    return fId === currentFolderId || (!fId && !currentFolderId);
+  // Separate folders and files
+  const folders = rows.filter(r => r.content.type === "folder");
+  const files = rows.filter(r => {
+    if (r.content.type === "folder") return false;
+    // Show files in current folder (or root if undefined)
+    return r.content.folderId === currentFolderId || (!r.content.folderId && !currentFolderId);
   });
 
-  const currentFolder = rows.find(r => r.id === currentFolderId);
-
   return (
-    <div className="glass-bg min-h-screen">
-      <div className="h-16 bg-white/95 border-b border-gray-200 backdrop-blur-sm px-6 flex items-center justify-between sticky top-0 z-20">
+    <div className="glass-bg h-screen flex flex-col overflow-hidden font-sans">
+      {/* Header */}
+      <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-gray-900 tracking-tight flex items-center gap-2">
-            <span
-              className={`cursor-pointer transition-colors ${currentFolderId ? "text-gray-500 hover:text-gray-900" : "text-gray-900"}`}
-              onClick={() => setCurrentFolderId(undefined)}
-            >
-              我的卡片
-            </span>
-            {currentFolder && (
-              <>
-                <span className="text-gray-400 text-sm">/</span>
-                <span className="text-gray-900">{currentFolder.content.name || currentFolder.title}</span>
-              </>
-            )}
-          </h1>
+          <h1 className="text-lg font-semibold text-gray-900 tracking-tight">我的卡片</h1>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -125,89 +110,155 @@ export default function Drafts() {
           </button>
         </div>
       </div>
-      <div className="mx-auto max-w-5xl px-4 py-6">
 
-        {currentFolderId && (
-          <div
-            className="mt-4 p-4 border-2 border-dashed border-gray-300 rounded-lg text-center text-gray-500 hover:bg-white/50 transition-colors cursor-pointer"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDrop(e, undefined)}
-            onClick={() => setCurrentFolderId(undefined)}
-          >
-            ⬆️ 返回上一層 (拖曳至此移出資料夾)
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col pt-4 pb-4 overflow-y-auto shrink-0">
+          <div className="px-4 mb-2">
+            <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Folders</div>
           </div>
-        )}
 
-        {err ? <div className="mt-4 text-red-600">{err}</div> : null}
+          <div className="space-y-1 px-2">
+            {/* Root Tab */}
+            <button
+              className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-3 ${currentFolderId === undefined
+                  ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                  : "text-gray-600 hover:bg-gray-200/50 hover:text-gray-900"
+                }`}
+              onClick={() => setCurrentFolderId(undefined)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDrop(e, undefined)}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={currentFolderId === undefined ? "text-blue-500" : "text-gray-400"}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              全部 / 未分類
+            </button>
 
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-          {currentRows.map((r) => {
-            const isFolder = r.content.type === "folder";
-            return (
+            {/* Folder List */}
+            {folders.map((folder) => (
               <div
-                key={r.id}
-                className={`glass-panel p-4 transition-all ${isFolder ? "bg-amber-100/80 hover:bg-amber-200/80" : ""}`}
-                draggable={true}
-                onDragStart={(e) => e.dataTransfer.setData("text/plain", r.id)}
-                onDragOver={(e) => {
-                  if (isFolder) e.preventDefault();
-                }}
-                onDrop={(e) => {
-                  if (isFolder) handleDrop(e, r.id);
-                }}
+                key={folder.id}
+                className={`group relative w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-3 cursor-pointer ${currentFolderId === folder.id
+                    ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
+                    : "text-gray-600 hover:bg-gray-200/50 hover:text-gray-900"
+                  }`}
+                onClick={() => setCurrentFolderId(folder.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDrop(e, folder.id)}
               >
-                <div className="flex items-center justify-between">
-                  <div
-                    className="font-semibold flex items-center gap-2 cursor-pointer flex-1"
-                    onClick={() => {
-                      if (isFolder) setCurrentFolderId(r.id);
-                      else nav(`/drafts/${r.id}/edit`);
-                    }}
-                  >
-                    {isFolder ? "📁" : "📄"} {r.content.name || r.title || "未命名"}
-                  </div>
-                  <span className="glass-badge">
-                    {isFolder ? "資料夾" : r.status === "publishable" ? "✅ 可發布" : r.status === "previewable" ? "⚠️ 可預覽" : "📝 草稿"}
-                  </span>
+                <div className={currentFolderId === folder.id ? "text-amber-500" : "text-gray-400"}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                 </div>
+                <span className="flex-1 truncate">{folder.content.name}</span>
 
-                {!isFolder && (
-                  <div className="text-sm opacity-70 mt-1">{String(r.content.type).toUpperCase()} · 更新：{new Date(r.updated_at).toLocaleString()}</div>
-                )}
-
-                <div className="mt-3 flex gap-2">
-                  {isFolder ? (
-                    <button className="glass-btn" onClick={() => setCurrentFolderId(r.id)}>進入</button>
-                  ) : (
-                    <>
-                      <button className="glass-btn" onClick={() => nav(`/drafts/${r.id}/edit`)}>編輯</button>
-                      <button className="glass-btn glass-btn--secondary" onClick={() => nav(`/drafts/${r.id}/preview`)}>預覽</button>
-                    </>
-                  )}
-
-                  <button
-                    className="glass-btn glass-btn--secondary"
-                    style={{ color: "#ff3b30" }}
-                    disabled={deleting === r.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(r.id, r.title || r.content.name);
-                    }}
-                  >
-                    {deleting === r.id ? "刪除中…" : "刪除"}
-                  </button>
-                </div>
+                {/* Delete Folder Button */}
+                <button
+                  className="w-5 h-5 flex items-center justify-center rounded hover:bg-red-100 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(folder.id, folder.content.name);
+                  }}
+                  disabled={deleting === folder.id}
+                  title="刪除資料夾"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
               </div>
-            );
-          })}
+            ))}
+          </div>
 
-          {currentRows.length === 0 && (
-            <div className="col-span-1 md:col-span-2 text-center text-gray-400 py-12">
-              這裡空空的
+          <div className="mt-auto px-4 pt-4 text-xs text-gray-400 flex items-center gap-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <span>提示：拖曳卡片至左側可分類</span>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-y-auto bg-gray-50/30 p-8">
+          <div className="max-w-6xl mx-auto">
+            {err ? <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100">{err}</div> : null}
+
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                {currentFolderId === undefined ? "全部 / 未分類" : folders.find(f => f.id === currentFolderId)?.content.name}
+              </h2>
+              <span className="text-sm text-gray-500 bg-white px-2 py-1 rounded-full border border-gray-200 shadow-sm">{files.length} 項目</span>
             </div>
-          )}
+
+            {/* Files Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {files.map((r) => (
+                <div
+                  key={r.id}
+                  className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg transition-all group relative hover:-translate-y-1"
+                  draggable={true}
+                  onDragStart={(e) => e.dataTransfer.setData("text/plain", r.id)}
+                >
+                  <div className="p-5 cursor-pointer" onClick={() => nav(`/drafts/${r.id}/edit`)}>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                        <div className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-base pr-2">
+                          {r.content.name || r.title || "未命名"}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{r.content.type}</span>
+                          <span className="text-[10px] text-gray-400 truncate">{new Date(r.updated_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <span className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium border ${r.status === "publishable" ? "bg-green-50 text-green-700 border-green-100" : r.status === "previewable" ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-gray-50 text-gray-600 border-gray-100"
+                        }`}>
+                        {r.status === "publishable" ? "已發布" : r.status === "previewable" ? "可預覽" : "草稿"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-3 border-t border-gray-100 flex items-center gap-2 bg-gray-50/50">
+                    <button
+                      className="flex-1 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 rounded shadow-sm transition-colors"
+                      onClick={() => nav(`/drafts/${r.id}/edit`)}
+                    >
+                      編輯
+                    </button>
+                    <button
+                      className="flex-1 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 rounded shadow-sm transition-colors"
+                      onClick={() => nav(`/drafts/${r.id}/preview`)}
+                    >
+                      預覽
+                    </button>
+                    <button
+                      className="w-8 h-[30px] flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors group/del"
+                      disabled={deleting === r.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(r.id, r.title || r.content.name);
+                      }}
+                      title="刪除"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {files.length === 0 && (
+                <div className="col-span-full py-24 flex flex-col items-center justify-center text-center opacity-70">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-4xl text-gray-300">📭</div>
+                  <p className="text-gray-900 font-medium text-lg">沒有卡片</p>
+                  <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">點擊右上角「新增草稿」開始建立您的第一張 Flex Message</p>
+                  <div className="mt-6 flex gap-3">
+                    <button className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-lg shadow-blue-200/50 transition-all" onClick={() => nav("/drafts/new")}>
+                      立即新增草稿
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-12 text-center text-xs text-gray-300">
+              Flex Editor v1.0.4
+            </div>
+          </div>
         </div>
       </div>
-    </div >
+    </div>
   );
 }
