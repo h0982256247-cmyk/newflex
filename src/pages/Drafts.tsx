@@ -31,6 +31,8 @@ export default function Drafts() {
     try {
       await deleteDoc(id);
       await load();
+      // If deleted folder is current, go to root
+      if (id === currentFolderId) setCurrentFolderId(undefined);
     } catch (e: any) {
       setErr(e.message || "刪除失敗");
     } finally {
