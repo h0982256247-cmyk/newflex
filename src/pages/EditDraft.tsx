@@ -136,45 +136,65 @@ export default function EditDraft() {
         </div>
 
         {doc.type === "carousel" && (
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-            {doc.cards.map((c, idx) => (
-              <button
-                key={c.id}
-                className={`glass-btn text-sm whitespace-nowrap ${selectedCardIdx === idx ? "bg-blue-50 border-blue-200 text-blue-700" : "glass-btn--secondary"}`}
-                onClick={() => setSelectedCardIdx(idx)}
-              >
-                卡片 {idx + 1}
-              </button>
-            ))}
-            <button className="glass-btn glass-btn--secondary text-sm" onClick={() => {
-              // Add new card with default template (clone current or fresh)
-              // For simplicity, we seed a fresh section structure or clone the structure of the first one but empty
-              // Let's use a fresh empty section structure based on seedBubble logic or just empty.
-              // Actually, reusing the section structure is safer.
-              const newCard = {
-                id: uid("card_"),
-                section: {
-                  hero: [{
-                    id: uid("hero_"), kind: "hero_image", enabled: true,
-                    image: { kind: "external", url: "https://placehold.co/600x400/png", lastCheck: { ok: true, level: "pass" } },
-                    ratio: "20:13", mode: "cover"
-                  }],
-                  body: [],
-                  footer: []
-                } as any // Cast to avoid strict type checks on deep structure creation here
-              };
-              scheduleSave({ ...doc, cards: [...doc.cards, newCard] });
-              setSelectedCardIdx(doc.cards.length); // Switch to new card
-            }}>＋ 新增卡片</button>
+          <div className="mt-4 flex flex-wrap gap-2 items-center">
+            <div className="flex gap-2 overflow-x-auto pb-2 flex-1">
+              {doc.cards.map((c, idx) => (
+                <button
+                  key={c.id}
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData("cardIdx", idx.toString())}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    const from = parseInt(e.dataTransfer.getData("cardIdx"));
+                    if (isNaN(from) || from === idx) return;
+                    const nextCards = moveItem(doc.cards, from, idx);
+                    scheduleSave({ ...doc, cards: nextCards });
+                    setSelectedCardIdx(idx);
+                  }}
+                  className={`glass-btn text-sm whitespace-nowrap cursor-move ${selectedCardIdx === idx ? "bg-blue-50 border-blue-200 text-blue-700" : "glass-btn--secondary"}`}
+                  onClick={() => setSelectedCardIdx(idx)}
+                >
+                  卡片 {idx + 1}
+                </button>
+              ))}
+              <button className="glass-btn glass-btn--secondary text-sm" onClick={() => {
+                const newCard = {
+                  id: uid("card_"),
+                  section: {
+                    hero: [{
+                      id: uid("hero_"), kind: "hero_image", enabled: true,
+                      image: { kind: "external", url: "https://placehold.co/600x400/png", lastCheck: { ok: true, level: "pass" } },
+                      ratio: "20:13", mode: "cover"
+                    }],
+                    body: [],
+                    footer: []
+                  } as any
+                };
+                scheduleSave({ ...doc, cards: [...doc.cards, newCard] });
+                setSelectedCardIdx(doc.cards.length);
+              }}>＋ 新增卡片</button>
+            </div>
 
-            {doc.cards.length > 1 && (
-              <button className="glass-btn glass-btn--secondary text-sm text-red-600" onClick={() => {
-                if (!confirm("確定刪除此卡片？")) return;
-                const nextCards = doc.cards.filter((_, i) => i !== selectedCardIdx);
+            <div className="flex gap-2">
+              <button className="glass-btn glass-btn--secondary text-sm text-blue-600" onClick={() => {
+                const current = doc.cards[selectedCardIdx];
+                const newCard = JSON.parse(JSON.stringify(current));
+                newCard.id = uid("card_");
+                const nextCards = [...doc.cards];
+                nextCards.splice(selectedCardIdx + 1, 0, newCard);
                 scheduleSave({ ...doc, cards: nextCards });
-                setSelectedCardIdx(Math.max(0, selectedCardIdx - 1));
-              }}>刪除當前</button>
-            )}
+                setSelectedCardIdx(selectedCardIdx + 1);
+              }}>複製當前</button>
+
+              {doc.cards.length > 1 && (
+                <button className="glass-btn glass-btn--secondary text-sm text-red-600" onClick={() => {
+                  if (!confirm("確定刪除此卡片？")) return;
+                  const nextCards = doc.cards.filter((_, i) => i !== selectedCardIdx);
+                  scheduleSave({ ...doc, cards: nextCards });
+                  setSelectedCardIdx(Math.max(0, selectedCardIdx - 1));
+                }}>刪除當前</button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -252,6 +272,11 @@ export default function EditDraft() {
             right={<span className="glass-badge">{section.body.filter((c: any) => c.enabled).length} 個</span>}
           >
             <div className="space-y-3">
+              <div className="glass-panel p-3 mb-3">
+                <ColorPicker label="背景顏色" value={section.styles?.body?.backgroundColor || ""} onChange={(v) => {
+                  setSection({ ...section, styles: { ...section.styles, body: { ...section.styles?.body, backgroundColor: v.toUpperCase() } } });
+                }} />
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 <button className="glass-btn text-xs py-2" onClick={() => {
                   const next = [...section.body, { id: uid("t_"), kind: "title", enabled: true, text: "新標題", size: "lg", weight: "bold", color: "#111111", align: "start" }];
@@ -307,26 +332,63 @@ export default function EditDraft() {
                   </div>
 
                   {(c.kind === "title" || c.kind === "paragraph") ? (
-                    <div className="mt-3">
-                      <div className="glass-label mb-2">文字</div>
-                      <textarea className="glass-input" rows={c.kind === "title" ? 2 : 3} value={c.text} onChange={(e) => {
-                        const next = [...section.body]; next[idx] = { ...c, text: e.target.value };
-                        setSection({ ...section, body: next });
-                      }} />
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <div className="glass-label mb-2">文字內容</div>
+                        <textarea className="glass-input" rows={c.kind === "title" ? 2 : 3} value={c.text} onChange={(e) => {
+                          const next = [...section.body]; next[idx] = { ...c, text: e.target.value };
+                          setSection({ ...section, body: next });
+                        }} />
+                      </div>
+
+                      <div className="flex flex-wrap gap-3">
+                        <div className="flex-1 min-w-[150px]">
+                          <ColorPicker
+                            label="文字顏色"
+                            value={c.color}
+                            colors={["#111111", "#8E8E93", "#0A84FF", "#30D158", "#FF453A"]}
+                            onChange={(v) => {
+                              const next = [...section.body]; next[idx] = { ...c, color: v.toUpperCase() };
+                              setSection({ ...section, body: next });
+                            }}
+                          />
+                        </div>
+                        <div className="w-24">
+                          <div className="glass-label mb-1">大小</div>
+                          <select className="glass-input w-full py-1.5" value={c.size} onChange={(e) => {
+                            const next = [...section.body]; next[idx] = { ...c, size: e.target.value };
+                            setSection({ ...section, body: next });
+                          }}>
+                            <option value="xs">XS</option><option value="sm">SM</option>
+                            <option value="md">MD</option><option value="lg">LG</option>
+                            <option value="xl">XL</option>
+                          </select>
+                        </div>
+                        <div className="w-24">
+                          <div className="glass-label mb-1">粗細</div>
+                          <select className="glass-input w-full py-1.5" value={c.weight || "regular"} onChange={(e) => {
+                            const next = [...section.body]; next[idx] = { ...c, weight: e.target.value as any };
+                            setSection({ ...section, body: next });
+                          }}>
+                            <option value="regular">一般</option>
+                            <option value="bold">粗體</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
                   ) : null}
 
                   {c.kind === "key_value" ? (
                     <div className="mt-3 space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div><div className="glass-label mb-2">標籤 (Label)</div><input className="glass-input" value={c.label} onChange={(e) => {
+                        <div><div className="glass-label mb-2">標籤名稱 (Label)</div><input className="glass-input" value={c.label} onChange={(e) => {
                           const next = [...section.body]; next[idx] = { ...c, label: e.target.value }; setSection({ ...section, body: next });
                         }} /></div>
-                        <div><div className="glass-label mb-2">數值 (Value)</div><input className="glass-input" value={c.value} onChange={(e) => {
+                        <div><div className="glass-label mb-2">顯示數值 (Value)</div><input className="glass-input" value={c.value} onChange={(e) => {
                           const next = [...section.body]; next[idx] = { ...c, value: e.target.value }; setSection({ ...section, body: next });
                         }} /></div>
                       </div>
-                      <div><div className="glass-label mb-2">連結 (URL)</div><input className="glass-input" value={c.action?.uri || ""} onChange={(e) => {
+                      <div><div className="glass-label mb-2">連結網址 (URL)</div><input className="glass-input" value={c.action?.uri || ""} onChange={(e) => {
                         const next = [...section.body]; next[idx] = { ...c, action: { type: "uri", uri: e.target.value } }; setSection({ ...section, body: next });
                       }} /></div>
                     </div>
@@ -489,7 +551,7 @@ export default function EditDraft() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 sticky top-24 self-start">
           <div className="glass-panel p-4">
             <div className="flex items-center justify-between">
               <div className="font-semibold">即時預覽</div>

@@ -2,10 +2,10 @@ import React, { useMemo } from "react";
 import { PALETTE } from "@/lib/templates";
 import { autoTextColor, isHexColor } from "@/lib/utils";
 
-export default function ColorPicker({ label, value, onChange, allowCustom=true }:{
-  label: string; value: string; onChange: (v: string) => void; allowCustom?: boolean;
+export default function ColorPicker({ label, value, onChange, allowCustom = true, colors }: {
+  label: string; value: string; onChange: (v: string) => void; allowCustom?: boolean; colors?: string[];
 }) {
-  const palette = useMemo(() => PALETTE, []);
+  const palette = useMemo(() => colors || PALETTE, [colors]);
   return (
     <div>
       <div className="glass-label mb-2">{label}</div>
@@ -25,7 +25,7 @@ export default function ColorPicker({ label, value, onChange, allowCustom=true }
   );
 }
 
-export function AutoTextColorHint({ bgColor, textColor }:{ bgColor: string; textColor: string }) {
+export function AutoTextColorHint({ bgColor, textColor }: { bgColor: string; textColor: string }) {
   const auto = autoTextColor(bgColor);
   const ok = auto.toLowerCase() === textColor.toLowerCase();
   return <div className="mt-2 text-xs opacity-70">建議文字色：{auto} {ok ? "（已最佳化）" : "（可按「自動」修正）"}</div>;

@@ -14,8 +14,11 @@ export type ComponentBase = { id: string; kind: string; enabled: boolean };
 
 export type HeroImage = ComponentBase & { kind: "hero_image"; image: ImageSource; ratio: ImgRatio; mode: ImgMode };
 
+export type BlockStyle = { backgroundColor?: string };
+export type BubbleStyles = { header?: BlockStyle; hero?: BlockStyle; body?: BlockStyle; footer?: BlockStyle };
+
 export type TitleText = ComponentBase & { kind: "title"; text: string; size: SizeToken; weight: "regular" | "bold"; color: string; align: LayoutAlign };
-export type ParagraphText = ComponentBase & { kind: "paragraph"; text: string; size: SizeToken; color: string; wrap: true };
+export type ParagraphText = ComponentBase & { kind: "paragraph"; text: string; size: SizeToken; weight?: "regular" | "bold"; color: string; wrap: true };
 export type KeyValueRow = ComponentBase & { kind: "key_value"; label: string; value: string; action?: Action };
 export type ListBlock = ComponentBase & { kind: "list"; items: { id: string; text: string }[] };
 export type Divider = ComponentBase & { kind: "divider" };
@@ -23,7 +26,12 @@ export type Spacer = ComponentBase & { kind: "spacer"; size: "sm" | "md" | "lg" 
 
 export type FooterButton = ComponentBase & { kind: "footer_button"; label: string; action: Action; style: "primary" | "secondary"; bgColor: string; textColor: string; autoTextColor: boolean };
 
-export type Section = { hero: HeroImage[]; body: (TitleText | ParagraphText | KeyValueRow | ListBlock | Divider | Spacer)[]; footer: FooterButton[] };
+export type Section = {
+  hero: HeroImage[];
+  body: (TitleText | ParagraphText | KeyValueRow | ListBlock | Divider | Spacer)[];
+  footer: FooterButton[];
+  styles?: BubbleStyles;
+};
 export type BubbleDoc = { type: "bubble"; title: string; section: Section; folderId?: string };
 export type CarouselDoc = { type: "carousel"; title: string; cards: { id: string; section: Section }[]; folderId?: string };
 export type FolderDoc = { type: "folder"; id: string; name: string; parentId?: string };

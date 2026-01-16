@@ -72,6 +72,7 @@ function sectionToBubble(section: Section, docId?: string, token?: string, liffI
         type: "text",
         text: c.text,
         size: sizeMap(c.size),
+        weight: c.weight === "bold" ? "bold" : "regular",
         color: c.color,
         wrap: true,
       });
@@ -147,6 +148,7 @@ function sectionToBubble(section: Section, docId?: string, token?: string, liffI
       layout: "vertical",
       spacing: "md",
       contents: bodyContents,
+      backgroundColor: section.styles?.body?.backgroundColor,
     };
   }
 
