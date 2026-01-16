@@ -9,6 +9,7 @@ export default function Drafts() {
   const [err, setErr] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
   // Sidebar state: Default to true on desktop, false on mobile (initial check)
   const [isSidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
 
@@ -82,17 +83,24 @@ export default function Drafts() {
 
   // Separate folders and files
   const folders = rows.filter(r => r.content.type === "folder");
+
+  // Filter Logic: If searching, search GLOBAL (all files). Else show current folder.
   const files = rows.filter(r => {
     if (r.content.type === "folder") return false;
-    // Show files in current folder (or root if undefined)
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (r.content.name || "").toLowerCase().includes(q) || (r.title || "").toLowerCase().includes(q);
+    }
+
     return r.content.folderId === currentFolderId || (!r.content.folderId && !currentFolderId);
   });
 
   return (
     <div className="glass-bg h-screen flex flex-col overflow-hidden font-sans">
       {/* Header */}
-      <div className="h-16 bg-white border-b border-gray-200 px-4 md:px-6 flex items-center justify-between shrink-0 z-20">
-        <div className="flex items-center gap-3">
+      <div className="h-16 bg-white border-b border-gray-200 px-4 md:px-6 flex items-center justify-between shrink-0 z-20 gap-4">
+        <div className="flex items-center gap-3 shrink-0">
           {/* Toggle Sidebar Button */}
           <button
             className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors md:hidden"
@@ -101,9 +109,24 @@ export default function Drafts() {
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
           </button>
-          <h1 className="text-lg font-semibold text-gray-900 tracking-tight">我的卡片</h1>
+          <h1 className="text-lg font-semibold text-gray-900 tracking-tight hidden sm:block">我的卡片</h1>
         </div>
-        <div className="flex items-center gap-2 md:gap-3">
+
+        {/* Search Bar */}
+        <div className="flex-1 max-w-md mx-auto relative group">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+          <input
+            type="text"
+            placeholder="搜尋草稿..."
+            className="w-full h-9 pl-9 pr-4 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-gray-400"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
           <button
             className="px-3 md:px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200/50 whitespace-nowrap"
             onClick={handleCreateFolder}
@@ -116,7 +139,7 @@ export default function Drafts() {
           >
             新增<span className="hidden md:inline">草稿</span>
           </button>
-          <div className="w-px h-6 bg-gray-200 mx-1"></div>
+          <div className="w-px h-6 bg-gray-200 mx-1 hidden sm:block"></div>
           <button
             className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-gray-200 transition-colors"
             onClick={async () => { if (confirm("確定要登出嗎？")) { await supabase.auth.signOut(); nav("/"); } }}
@@ -151,18 +174,19 @@ export default function Drafts() {
           <div className="space-y-1 px-2 whitespace-nowrap">
             {/* Root Tab */}
             <button
-              className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-3 ${currentFolderId === undefined
+              className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-3 ${currentFolderId === undefined && !searchQuery
                   ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
                   : "text-gray-600 hover:bg-gray-200/50 hover:text-gray-900"
                 }`}
               onClick={() => {
+                setSearchQuery(""); // Clear search when navigating
                 setCurrentFolderId(undefined);
                 if (window.innerWidth < 768) setSidebarOpen(false);
               }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, undefined)}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={currentFolderId === undefined ? "text-blue-500" : "text-gray-400"}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={currentFolderId === undefined && !searchQuery ? "text-blue-500" : "text-gray-400"}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
               全部 / 未分類
             </button>
 
@@ -170,18 +194,19 @@ export default function Drafts() {
             {folders.map((folder) => (
               <div
                 key={folder.id}
-                className={`group relative w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-3 cursor-pointer ${currentFolderId === folder.id
+                className={`group relative w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-3 cursor-pointer ${currentFolderId === folder.id && !searchQuery
                     ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
                     : "text-gray-600 hover:bg-gray-200/50 hover:text-gray-900"
                   }`}
                 onClick={() => {
+                  setSearchQuery(""); // Clear search when navigating
                   setCurrentFolderId(folder.id);
                   if (window.innerWidth < 768) setSidebarOpen(false);
                 }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, folder.id)}
               >
-                <div className={currentFolderId === folder.id ? "text-amber-500" : "text-gray-400"}>
+                <div className={currentFolderId === folder.id && !searchQuery ? "text-amber-500" : "text-gray-400"}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                 </div>
                 <span className="flex-1 truncate">{folder.content.name}</span>
@@ -215,7 +240,9 @@ export default function Drafts() {
 
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
-                {currentFolderId === undefined ? "全部 / 未分類" : folders.find(f => f.id === currentFolderId)?.content.name}
+                {searchQuery
+                  ? `搜尋結果：${searchQuery}`
+                  : currentFolderId === undefined ? "全部 / 未分類" : folders.find(f => f.id === currentFolderId)?.content.name}
               </h2>
               <span className="text-xs md:text-sm text-gray-500 bg-white px-2 py-1 rounded-full border border-gray-200 shadow-sm whitespace-nowrap">{files.length} 項目</span>
             </div>
@@ -238,6 +265,11 @@ export default function Drafts() {
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">{r.content.type}</span>
                           <span className="text-[10px] text-gray-400 truncate">{new Date(r.updated_at).toLocaleDateString()}</span>
+                          {searchQuery && r.content.folderId && folders.find(f => f.id === r.content.folderId) && (
+                            <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded truncate max-w-[80px]">
+                              📁 {folders.find(f => f.id === r.content.folderId)?.content.name}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <span className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium border ${r.status === "publishable" ? "bg-green-50 text-green-700 border-green-100" : r.status === "previewable" ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-gray-50 text-gray-600 border-gray-100"
@@ -277,14 +309,26 @@ export default function Drafts() {
 
               {files.length === 0 && (
                 <div className="col-span-full py-24 flex flex-col items-center justify-center text-center opacity-70">
-                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-4xl text-gray-300">📭</div>
-                  <p className="text-gray-900 font-medium text-lg">沒有卡片</p>
-                  <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">點擊右上角「新增草稿」開始建立您的第一張 Flex Message</p>
-                  <div className="mt-6 flex gap-3">
-                    <button className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-lg shadow-blue-200/50 transition-all" onClick={() => nav("/drafts/new")}>
-                      立即新增草稿
-                    </button>
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-4xl text-gray-300">
+                    {searchQuery ? "🔍" : "📭"}
                   </div>
+                  <p className="text-gray-900 font-medium text-lg">{searchQuery ? "沒有找到符合的草稿" : "沒有卡片"}</p>
+                  <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">
+                    {searchQuery ? "請嘗試不同的關鍵字，或清除搜尋條件" : "點擊右上角「新增草稿」開始建立您的第一張 Flex Message"}
+                  </p>
+                  {searchQuery ? (
+                    <div className="mt-6 flex gap-3">
+                      <button className="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all" onClick={() => setSearchQuery("")}>
+                        清除搜尋
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-6 flex gap-3">
+                      <button className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-lg shadow-blue-200/50 transition-all" onClick={() => nav("/drafts/new")}>
+                        立即新增草稿
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

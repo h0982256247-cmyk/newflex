@@ -182,22 +182,13 @@ export default function EditDraft() {
       <div className="mx-auto max-w-5xl px-4 py-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="space-y-4">
           <AccordionSection
-            title="Hero（主圖）"
-            subtitle="Carousel 每張卡必填；外部圖 fail：可預覽不可發布"
+            title="封面圖片"
+            subtitle="輪播卡片每張必填；建議使用 1.91:1 比例"
             open={open === "hero"}
             onToggle={() => setOpen(open === "hero" ? "body" : "hero")}
             right={<span className="glass-badge">{report.status === "publishable" ? "✅" : report.status === "previewable" ? "⚠️" : "📝"}</span>}
           >
             <div className="space-y-3">
-              <button className="glass-btn glass-btn--secondary w-full" onClick={async () => {
-                const url = prompt("貼上 https 圖片連結：");
-                if (!url) return;
-                const check = url.startsWith("https://") ? await checkExternalImage(url) : { ok: false, level: "fail", reasonCode: "NOT_HTTPS" };
-                await updateHeroImageSource({ kind: "external", url, lastCheck: { ...check, checkedAt: new Date().toISOString() } });
-              }}>
-                貼上圖片連結（含檢查）
-              </button>
-
               <label className="glass-btn glass-btn--secondary w-full justify-center">
                 上傳圖片（Supabase Storage）
                 <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
@@ -233,7 +224,7 @@ export default function EditDraft() {
 
 
               <div className="mt-3">
-                <div className="glass-label mb-2">圖片比例 (Aspect Ratio)</div>
+                <div className="glass-label mb-2">圖片比例</div>
                 <select
                   className="glass-input"
                   value={section.hero[0]?.ratio || "1.91:1"}
@@ -255,7 +246,7 @@ export default function EditDraft() {
           </AccordionSection>
 
           <AccordionSection
-            title="Body（內容）"
+            title="內容設定"
             open={open === "body"}
             onToggle={() => setOpen(open === "body" ? "footer" : "body")}
             right={<span className="glass-badge">{section.body.filter((c: any) => c.enabled).length} 個</span>}
@@ -328,14 +319,14 @@ export default function EditDraft() {
                   {c.kind === "key_value" ? (
                     <div className="mt-3 space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div><div className="glass-label mb-2">Label</div><input className="glass-input" value={c.label} onChange={(e) => {
+                        <div><div className="glass-label mb-2">標籤 (Label)</div><input className="glass-input" value={c.label} onChange={(e) => {
                           const next = [...section.body]; next[idx] = { ...c, label: e.target.value }; setSection({ ...section, body: next });
                         }} /></div>
-                        <div><div className="glass-label mb-2">Value</div><input className="glass-input" value={c.value} onChange={(e) => {
+                        <div><div className="glass-label mb-2">數值 (Value)</div><input className="glass-input" value={c.value} onChange={(e) => {
                           const next = [...section.body]; next[idx] = { ...c, value: e.target.value }; setSection({ ...section, body: next });
                         }} /></div>
                       </div>
-                      <div><div className="glass-label mb-2">URL</div><input className="glass-input" value={c.action?.uri || ""} onChange={(e) => {
+                      <div><div className="glass-label mb-2">連結 (URL)</div><input className="glass-input" value={c.action?.uri || ""} onChange={(e) => {
                         const next = [...section.body]; next[idx] = { ...c, action: { type: "uri", uri: e.target.value } }; setSection({ ...section, body: next });
                       }} /></div>
                     </div>
@@ -375,7 +366,7 @@ export default function EditDraft() {
           </AccordionSection>
 
           <AccordionSection
-            title="Footer（按鈕）"
+            title="底部按鈕"
             subtitle="最多 3 顆；直向滿版"
             open={open === "footer"}
             onToggle={() => setOpen(open === "footer" ? "hero" : "footer")}
