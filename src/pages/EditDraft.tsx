@@ -103,8 +103,10 @@ export default function EditDraft() {
   };
 
   const updateHeroImageSource = async (img: ImageSource) => {
-    const hero = section.hero.map((c: any) => (c.kind === "hero_image" ? { ...c, image: img } : c));
-    setSection({ ...section, hero });
+    if (isSpecialCard) return; // Special cards don't have hero array
+    const regularSection = section as any;
+    const hero = regularSection.hero.map((c: any) => (c.kind === "hero_image" ? { ...c, image: img } : c));
+    setSection({ ...regularSection, hero });
   };
 
   return (
@@ -419,7 +421,8 @@ export default function EditDraft() {
                   value={(section as any).hero?.[0]?.ratio || "1.91:1"}
                   onChange={(e) => {
                     const ratio = e.target.value as any;
-                    const hero = (section as any).hero.map((c: any) => c.kind === "hero_image" ? { ...c, ratio } : c);
+                    const heroArr = (section as any).hero || [];
+                    const hero = heroArr.map((c: any) => c.kind === "hero_image" ? { ...c, ratio } : c);
                     setSection({ ...section, hero });
                   }}
                 >
@@ -602,16 +605,16 @@ export default function EditDraft() {
             subtitle="最多 3 顆；直向滿版"
             open={open === "footer"}
             onToggle={() => setOpen(open === "footer" ? "hero" : "footer")}
-            right={<span className="glass-badge">{section.footer.length}/3</span>}
+            right={<span className="glass-badge">{(section as any).footer?.length || 0}/3</span>}
           >
             <div className="space-y-3">
-              <button className="glass-btn w-full" disabled={section.footer.length >= 3} onClick={() => {
+              <button className="glass-btn w-full" disabled={((section as any).footer?.length || 0) >= 3} onClick={() => {
                 const bg = "#0A84FF";
                 const btn: FooterButton = { id: uid("btn_"), kind: "footer_button", enabled: true, label: "新按鈕", action: { type: "uri", uri: "https://example.com" }, style: "primary", bgColor: bg, textColor: autoTextColor(bg), autoTextColor: true };
-                setSection({ ...section, footer: [...section.footer, btn].slice(0, 3) });
+                setSection({ ...section, footer: [...((section as any).footer || []), btn].slice(0, 3) });
               }}>+ 新增按鈕</button>
 
-              {section.footer.map((b: any, idx: number) => (
+              {((section as any).footer || []).map((b: any, idx: number) => (
                 <div key={b.id} className="glass-panel p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="font-semibold text-sm">按鈕 {idx + 1}</div>
