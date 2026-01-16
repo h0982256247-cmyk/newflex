@@ -20,7 +20,19 @@ export default function ColorPicker({ label, value, onChange, allowCustom = true
           </label>
         ) : null}
       </div>
-      <div className="mt-2 text-xs opacity-70">目前：{value}</div>
+      <div className="mt-2 flex items-center gap-2">
+        <span className="text-xs opacity-70">HEX</span>
+        <input
+          className="glass-input py-1 px-2 text-xs w-full font-mono uppercase"
+          value={value}
+          onChange={(e) => {
+            let v = e.target.value;
+            if (!v.startsWith("#") && /^[0-9A-Fa-f]{0,6}$/.test(v)) v = "#" + v;
+            onChange(v.toUpperCase());
+          }}
+          placeholder="#000000"
+        />
+      </div>
     </div>
   );
 }

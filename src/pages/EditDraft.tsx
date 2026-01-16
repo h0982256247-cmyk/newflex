@@ -341,40 +341,46 @@ export default function EditDraft() {
                         }} />
                       </div>
 
-                      <div className="flex flex-wrap gap-3">
-                        <div className="flex-1 min-w-[150px]">
-                          <ColorPicker
-                            label="文字顏色"
-                            value={c.color}
-                            colors={["#111111", "#8E8E93", "#0A84FF", "#30D158", "#FF453A"]}
-                            onChange={(v) => {
-                              const next = [...section.body]; next[idx] = { ...c, color: v.toUpperCase() };
+                      <details className="group">
+                        <summary className="cursor-pointer text-xs text-blue-600 font-medium py-1 select-none flex items-center gap-1">
+                          <svg className="w-4 h-4 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                          調整樣式 (顏色/大小/粗細)
+                        </summary>
+                        <div className="pt-2 pl-4 flex flex-wrap gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                          <div className="flex-1 min-w-[150px]">
+                            <ColorPicker
+                              label="文字顏色"
+                              value={c.color}
+                              colors={["#111111", "#8E8E93", "#0A84FF", "#30D158", "#FF453A"]}
+                              onChange={(v) => {
+                                const next = [...section.body]; next[idx] = { ...c, color: v.toUpperCase() };
+                                setSection({ ...section, body: next });
+                              }}
+                            />
+                          </div>
+                          <div className="w-24">
+                            <div className="glass-label mb-1">大小</div>
+                            <select className="glass-input w-full py-1.5" value={c.size} onChange={(e) => {
+                              const next = [...section.body]; next[idx] = { ...c, size: e.target.value };
                               setSection({ ...section, body: next });
-                            }}
-                          />
+                            }}>
+                              <option value="xs">XS</option><option value="sm">SM</option>
+                              <option value="md">MD</option><option value="lg">LG</option>
+                              <option value="xl">XL</option>
+                            </select>
+                          </div>
+                          <div className="w-24">
+                            <div className="glass-label mb-1">粗細</div>
+                            <select className="glass-input w-full py-1.5" value={c.weight || "regular"} onChange={(e) => {
+                              const next = [...section.body]; next[idx] = { ...c, weight: e.target.value as any };
+                              setSection({ ...section, body: next });
+                            }}>
+                              <option value="regular">一般</option>
+                              <option value="bold">粗體</option>
+                            </select>
+                          </div>
                         </div>
-                        <div className="w-24">
-                          <div className="glass-label mb-1">大小</div>
-                          <select className="glass-input w-full py-1.5" value={c.size} onChange={(e) => {
-                            const next = [...section.body]; next[idx] = { ...c, size: e.target.value };
-                            setSection({ ...section, body: next });
-                          }}>
-                            <option value="xs">XS</option><option value="sm">SM</option>
-                            <option value="md">MD</option><option value="lg">LG</option>
-                            <option value="xl">XL</option>
-                          </select>
-                        </div>
-                        <div className="w-24">
-                          <div className="glass-label mb-1">粗細</div>
-                          <select className="glass-input w-full py-1.5" value={c.weight || "regular"} onChange={(e) => {
-                            const next = [...section.body]; next[idx] = { ...c, weight: e.target.value as any };
-                            setSection({ ...section, body: next });
-                          }}>
-                            <option value="regular">一般</option>
-                            <option value="bold">粗體</option>
-                          </select>
-                        </div>
-                      </div>
+                      </details>
                     </div>
                   ) : null}
 

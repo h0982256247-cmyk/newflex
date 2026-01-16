@@ -142,15 +142,14 @@ function sectionToBubble(section: Section, docId?: string, token?: string, liffI
     type: "bubble",
   };
 
-  if (bodyContents.length > 0) {
-    bubble.body = {
-      type: "box",
-      layout: "vertical",
-      spacing: "md",
-      contents: bodyContents,
-      backgroundColor: section.styles?.body?.backgroundColor,
-    };
-  }
+  bubble.body = {
+    type: "box",
+    layout: "vertical",
+    spacing: "md",
+    contents: bodyContents,
+    backgroundColor: section.styles?.body?.backgroundColor,
+    paddingAll: "20px",
+  };
 
   if (hero) bubble.hero = hero;
   if (footer) bubble.footer = footer;
