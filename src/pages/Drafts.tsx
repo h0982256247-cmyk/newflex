@@ -9,9 +9,17 @@ export default function Drafts() {
   const [err, setErr] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | undefined>(undefined);
+  // Sidebar state: Default to true on desktop, false on mobile (initial check)
+  const [isSidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
 
   useEffect(() => {
     load();
+    const handleResize = () => {
+      // Keep sidebar open on desktop, close on mobile if resized from desktop
+      setSidebarOpen(window.innerWidth >= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, [nav]);
 
   async function load() {
@@ -83,22 +91,30 @@ export default function Drafts() {
   return (
     <div className="glass-bg h-screen flex flex-col overflow-hidden font-sans">
       {/* Header */}
-      <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between shrink-0 z-20">
-        <div className="flex items-center gap-4">
+      <div className="h-16 bg-white border-b border-gray-200 px-4 md:px-6 flex items-center justify-between shrink-0 z-20">
+        <div className="flex items-center gap-3">
+          {/* Toggle Sidebar Button */}
+          <button
+            className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors md:hidden"
+            onClick={() => setSidebarOpen(!isSidebarOpen)}
+            title={isSidebarOpen ? "收起列表" : "展開列表"}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
           <h1 className="text-lg font-semibold text-gray-900 tracking-tight">我的卡片</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <button
-            className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200/50"
+            className="px-3 md:px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200/50 whitespace-nowrap"
             onClick={handleCreateFolder}
           >
-            ＋ 資料夾
+            ＋<span className="hidden md:inline"> 資料夾</span>
           </button>
           <button
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-200/50 rounded-lg transition-all"
+            className="px-3 md:px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-200/50 rounded-lg transition-all whitespace-nowrap"
             onClick={() => nav("/drafts/new")}
           >
-            新增草稿
+            新增<span className="hidden md:inline">草稿</span>
           </button>
           <div className="w-px h-6 bg-gray-200 mx-1"></div>
           <button
@@ -111,21 +127,38 @@ export default function Drafts() {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Mobile Backdrop */}
+        {isSidebarOpen && (
+          <div
+            className="absolute inset-0 bg-black/20 z-30 md:hidden backdrop-blur-sm transition-opacity"
+            onClick={() => setSidebarOpen(false)}
+          ></div>
+        )}
+
         {/* Sidebar */}
-        <div className="w-64 bg-gray-50 border-r border-gray-200 flex flex-col pt-4 pb-4 overflow-y-auto shrink-0">
-          <div className="px-4 mb-2">
+        <div
+          className={`
+            absolute inset-y-0 left-0 z-40 w-64 bg-gray-50 border-r border-gray-200 flex flex-col pt-4 pb-4 overflow-y-auto transition-transform duration-300 ease-in-out
+            md:static md:translate-x-0
+            ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:w-0 md:border-none md:overflow-hidden"}
+          `}
+        >
+          <div className="px-4 mb-2 md:opacity-100 transition-opacity whitespace-nowrap">
             <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Folders</div>
           </div>
 
-          <div className="space-y-1 px-2">
+          <div className="space-y-1 px-2 whitespace-nowrap">
             {/* Root Tab */}
             <button
               className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex items-center gap-3 ${currentFolderId === undefined
                   ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
                   : "text-gray-600 hover:bg-gray-200/50 hover:text-gray-900"
                 }`}
-              onClick={() => setCurrentFolderId(undefined)}
+              onClick={() => {
+                setCurrentFolderId(undefined);
+                if (window.innerWidth < 768) setSidebarOpen(false);
+              }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, undefined)}
             >
@@ -141,7 +174,10 @@ export default function Drafts() {
                     ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
                     : "text-gray-600 hover:bg-gray-200/50 hover:text-gray-900"
                   }`}
-                onClick={() => setCurrentFolderId(folder.id)}
+                onClick={() => {
+                  setCurrentFolderId(folder.id);
+                  if (window.innerWidth < 768) setSidebarOpen(false);
+                }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, folder.id)}
               >
@@ -166,26 +202,26 @@ export default function Drafts() {
             ))}
           </div>
 
-          <div className="mt-auto px-4 pt-4 text-xs text-gray-400 flex items-center gap-1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <span>提示：拖曳卡片至左側可分類</span>
+          <div className="mt-auto px-4 pt-4 text-xs text-gray-400 flex items-center gap-1 whitespace-nowrap overflow-hidden">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <span className="truncate">提示：拖曳卡片至左側可分類</span>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-y-auto bg-gray-50/30 p-8">
+        <div className="flex-1 overflow-y-auto bg-gray-50/30 p-4 md:p-8 w-full">
           <div className="max-w-6xl mx-auto">
             {err ? <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100">{err}</div> : null}
 
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
                 {currentFolderId === undefined ? "全部 / 未分類" : folders.find(f => f.id === currentFolderId)?.content.name}
               </h2>
-              <span className="text-sm text-gray-500 bg-white px-2 py-1 rounded-full border border-gray-200 shadow-sm">{files.length} 項目</span>
+              <span className="text-xs md:text-sm text-gray-500 bg-white px-2 py-1 rounded-full border border-gray-200 shadow-sm whitespace-nowrap">{files.length} 項目</span>
             </div>
 
             {/* Files Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
               {files.map((r) => (
                 <div
                   key={r.id}
@@ -193,7 +229,7 @@ export default function Drafts() {
                   draggable={true}
                   onDragStart={(e) => e.dataTransfer.setData("text/plain", r.id)}
                 >
-                  <div className="p-5 cursor-pointer" onClick={() => nav(`/drafts/${r.id}/edit`)}>
+                  <div className="p-4 md:p-5 cursor-pointer" onClick={() => nav(`/drafts/${r.id}/edit`)}>
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                         <div className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate text-base pr-2">
