@@ -32,8 +32,23 @@ export type Section = {
   footer: FooterButton[];
   styles?: BubbleStyles;
 };
+
+// Special card section with full-bleed image and bottom overlay
+export type OverlayConfig = {
+  backgroundColor: string; // supports 8-digit hex for transparency (e.g., #03303Acc)
+  height: "auto" | "30%" | "40%" | "50%" | "60%" | "70%";
+};
+export type SpecialSection = {
+  kind: "special";
+  image: ImageSource;
+  ratio: ImgRatio | "2:3" | "9:16";
+  overlay: OverlayConfig;
+  body: (TitleText | ParagraphText | KeyValueRow | ListBlock | Divider | Spacer)[];
+};
+
+export type CardSection = Section | SpecialSection;
 export type BubbleDoc = { type: "bubble"; title: string; section: Section; folderId?: string };
-export type CarouselDoc = { type: "carousel"; title: string; cards: { id: string; section: Section }[]; folderId?: string };
+export type CarouselDoc = { type: "carousel"; title: string; cards: { id: string; section: CardSection }[]; folderId?: string };
 export type FolderDoc = { type: "folder"; id: string; name: string; parentId?: string };
 export type DocModel = BubbleDoc | CarouselDoc | FolderDoc;
 

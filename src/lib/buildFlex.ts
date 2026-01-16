@@ -1,4 +1,4 @@
-import { DocModel, Section, FooterButton, Action, SizeToken } from "./types";
+import { DocModel, Section, FooterButton, Action, SizeToken, SpecialSection, CardSection } from "./types";
 import { isHexColor } from "./utils";
 
 function sizeMap(s: SizeToken): string {
@@ -157,6 +157,112 @@ function sectionToBubble(section: Section, docId?: string, token?: string, liffI
   return bubble;
 }
 
+function specialSectionToBubble(section: SpecialSection, docId?: string, token?: string, liffId?: string) {
+  const imageUrl = safeHttpsUrl(section.image?.url) || "https://placehold.co/600x900/png";
+
+  // Build overlay body contents
+  const overlayContents: any[] = [];
+  for (const c of section.body) {
+    if (!c.enabled) continue;
+
+    if (c.kind === "title")
+      overlayContents.push({
+        type: "text",
+        text: c.text,
+        weight: c.weight === "bold" ? "bold" : "regular",
+        size: sizeMap(c.size),
+        color: c.color,
+        align: c.align,
+        wrap: true,
+      });
+
+    if (c.kind === "paragraph")
+      overlayContents.push({
+        type: "text",
+        text: c.text,
+        size: sizeMap(c.size),
+        weight: c.weight === "bold" ? "bold" : "regular",
+        color: c.color,
+        wrap: true,
+      });
+
+    if (c.kind === "key_value") {
+      const row: any = {
+        type: "box",
+        layout: "baseline",
+        spacing: "sm",
+        contents: [
+          { type: "text", text: c.label, size: "sm", color: "#CCCCCC", flex: 2, wrap: true },
+          { type: "text", text: c.value, size: "sm", color: "#FFFFFF", flex: 5, wrap: true },
+        ],
+      };
+      if (c.action) row.action = actionToFlex(c.action, undefined, docId, token, liffId);
+      overlayContents.push(row);
+    }
+
+    if (c.kind === "list")
+      overlayContents.push({
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: c.items.map((it: any) => ({
+          type: "text",
+          text: "• " + it.text,
+          size: "sm",
+          color: "#FFFFFF",
+          wrap: true,
+        })),
+      });
+
+    if (c.kind === "divider") overlayContents.push({ type: "separator", margin: "md", color: "#FFFFFF33" });
+    if (c.kind === "spacer") overlayContents.push({ type: "spacer", size: c.size });
+  }
+
+  // Build overlay box with configurable height
+  const overlayBox: any = {
+    type: "box",
+    layout: "vertical",
+    contents: overlayContents,
+    position: "absolute",
+    offsetBottom: "0px",
+    offsetStart: "0px",
+    offsetEnd: "0px",
+    backgroundColor: section.overlay?.backgroundColor || "#03303Acc",
+    paddingAll: "20px",
+    paddingTop: "18px",
+  };
+
+  // Apply height if not auto
+  if (section.overlay?.height && section.overlay.height !== "auto") {
+    overlayBox.height = section.overlay.height;
+    overlayBox.justifyContent = "flex-end";
+  }
+
+  return {
+    type: "bubble",
+    body: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "image",
+          url: imageUrl,
+          size: "full",
+          aspectMode: "cover",
+          aspectRatio: section.ratio || "2:3",
+          gravity: "top",
+        },
+        overlayBox,
+      ],
+      paddingAll: "0px",
+    },
+  };
+}
+
+function isSpecialSection(section: CardSection): section is SpecialSection {
+  return (section as SpecialSection).kind === "special";
+}
+
 export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?: string) {
   if (doc.type === "folder") {
     return { type: "flex", altText: "Folder", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [] } } };
@@ -178,7 +284,12 @@ export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?
     altText: doc.title || "Flex Message",
     contents: {
       type: "carousel",
-      contents: cards.map((c) => sectionToBubble(c.section, docId, token, liffId)),
+      contents: cards.map((c) => {
+        if (isSpecialSection(c.section)) {
+          return specialSectionToBubble(c.section, docId, token, liffId);
+        }
+        return sectionToBubble(c.section, docId, token, liffId);
+      }),
     },
   };
 }

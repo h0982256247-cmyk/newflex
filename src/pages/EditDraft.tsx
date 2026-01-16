@@ -7,8 +7,9 @@ import FlexPreview from "@/components/FlexPreview";
 import ColorPicker, { AutoTextColorHint } from "@/components/ColorPicker";
 import { buildFlex } from "@/lib/buildFlex";
 import { getDoc, saveDoc, createTemplateFromDoc, getActiveShareForDoc } from "@/lib/db";
-import { DocModel, FooterButton, ImageSource } from "@/lib/types";
+import { DocModel, FooterButton, ImageSource, SpecialSection } from "@/lib/types";
 import { uid, autoTextColor } from "@/lib/utils";
+import { seedSpecialSection } from "@/lib/templates";
 import { validateDoc } from "@/lib/validate";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -82,6 +83,8 @@ export default function EditDraft() {
   // Safe access for carousel cards
   const currentCardIdx = doc.type === "carousel" ? Math.min(selectedCardIdx, doc.cards.length - 1) : 0;
   const section = doc.type === "bubble" ? doc.section : doc.cards[currentCardIdx].section;
+  const isSpecialCard = (section as SpecialSection).kind === "special";
+  const specialSection = isSpecialCard ? (section as SpecialSection) : null;
   const report = validateDoc(doc);
 
   const setSection = (next: any) => {
@@ -172,7 +175,15 @@ export default function EditDraft() {
                 };
                 scheduleSave({ ...doc, cards: [...doc.cards, newCard] });
                 setSelectedCardIdx(doc.cards.length);
-              }}>＋ 新增卡片</button>
+              }}>＋ 一般卡片</button>
+              <button className="glass-btn glass-btn--secondary text-sm text-purple-600" onClick={() => {
+                const newCard = {
+                  id: uid("card_"),
+                  section: seedSpecialSection()
+                };
+                scheduleSave({ ...doc, cards: [...doc.cards, newCard] });
+                setSelectedCardIdx(doc.cards.length);
+              }}>＋ 特殊卡片</button>
             </div>
 
             <div className="flex gap-2">
@@ -201,6 +212,164 @@ export default function EditDraft() {
 
       <div className="mx-auto max-w-5xl px-4 py-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="space-y-4">
+          {/* Special Card Editor */}
+          {isSpecialCard && specialSection ? (
+            <>
+              <AccordionSection
+                title="滿版圖片"
+                subtitle="上傳圖片，圖片會佔滿整張卡片"
+                open={open === "hero"}
+                onToggle={() => setOpen(open === "hero" ? "body" : "hero")}
+                right={<span className="glass-badge glass-badge--purple">特殊卡片</span>}
+              >
+                <div className="space-y-3">
+                  <label className="glass-btn glass-btn--secondary w-full justify-center">
+                    上傳圖片
+                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 1 * 1024 * 1024) return alert("檔案過大，請小於 1MB");
+                      try {
+                        const ext = file.name.split(".").pop();
+                        const path = `${uid("img_")}.${ext}`;
+                        const { error } = await supabase.storage.from("flex-assets").upload(path, file);
+                        if (error) return alert("上傳失敗：" + error.message);
+                        const { data: { publicUrl } } = supabase.storage.from("flex-assets").getPublicUrl(path);
+                        setSection({ ...specialSection, image: { kind: "upload", assetId: path, url: publicUrl } });
+                      } catch (err: any) {
+                        alert("上傳錯誤：" + err.message);
+                      }
+                    }} />
+                  </label>
+
+                  <div className="mt-3">
+                    <div className="glass-label mb-2">圖片比例</div>
+                    <select
+                      className="glass-input"
+                      value={specialSection.ratio || "2:3"}
+                      onChange={(e) => setSection({ ...specialSection, ratio: e.target.value as any })}
+                    >
+                      <option value="2:3">2:3 (直向卡片)</option>
+                      <option value="9:16">9:16 (滿版直向)</option>
+                      <option value="1:1">1:1 (正方形)</option>
+                      <option value="4:3">4:3 (標準)</option>
+                      <option value="16:9">16:9 (寬螢幕)</option>
+                    </select>
+                  </div>
+                </div>
+              </AccordionSection>
+
+              <AccordionSection
+                title="底部覆蓋層"
+                subtitle="半透明背景，可調整高度與顏色"
+                open={open === "body"}
+                onToggle={() => setOpen(open === "body" ? "footer" : "body")}
+                right={<span className="glass-badge">{specialSection.body.filter((c: any) => c.enabled).length} 個</span>}
+              >
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="glass-label mb-2">覆蓋層高度</div>
+                      <select
+                        className="glass-input"
+                        value={specialSection.overlay?.height || "auto"}
+                        onChange={(e) => setSection({ ...specialSection, overlay: { ...specialSection.overlay, height: e.target.value as any } })}
+                      >
+                        <option value="auto">自動 (依內容)</option>
+                        <option value="30%">30%</option>
+                        <option value="40%">40%</option>
+                        <option value="50%">50%</option>
+                        <option value="60%">60%</option>
+                        <option value="70%">70%</option>
+                      </select>
+                    </div>
+                    <div>
+                      <div className="glass-label mb-2">背景顏色 (含透明度)</div>
+                      <input
+                        type="text"
+                        className="glass-input"
+                        value={specialSection.overlay?.backgroundColor || "#03303Acc"}
+                        onChange={(e) => setSection({ ...specialSection, overlay: { ...specialSection.overlay, backgroundColor: e.target.value } })}
+                        placeholder="#03303Acc"
+                      />
+                      <div className="text-xs opacity-70 mt-1">8位hex色碼，後2位為透明度</div>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3 mt-3">
+                    <div className="glass-label mb-2">覆蓋層內容</div>
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      <button className="glass-btn text-xs py-2" onClick={() => {
+                        const next = [...specialSection.body, { id: uid("t_"), kind: "title", enabled: true, text: "標題", size: "lg", weight: "bold", color: "#FFFFFF", align: "start" }];
+                        setSection({ ...specialSection, body: next });
+                      }}>＋ 標題</button>
+                      <button className="glass-btn text-xs py-2" onClick={() => {
+                        const next = [...specialSection.body, { id: uid("p_"), kind: "paragraph", enabled: true, text: "描述文字…", size: "md", color: "#FFFFFF", wrap: true }];
+                        setSection({ ...specialSection, body: next });
+                      }}>＋ 段落</button>
+                      <button className="glass-btn text-xs py-2" onClick={() => {
+                        const next = [...specialSection.body, { id: uid("kv_"), kind: "key_value", enabled: true, label: "標籤", value: "內容" }];
+                        setSection({ ...specialSection, body: next });
+                      }}>＋ 標籤數值</button>
+                    </div>
+
+                    {specialSection.body.map((c: any, idx: number) => (
+                      <div key={c.id} className="glass-panel p-3 mb-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-semibold text-sm">{idx + 1}. {c.kind}</div>
+                          <button className="glass-btn glass-btn--secondary px-2 py-1 text-xs text-red-600" onClick={() => {
+                            const next = specialSection.body.filter((_: any, i: number) => i !== idx);
+                            setSection({ ...specialSection, body: next });
+                          }}>刪除</button>
+                        </div>
+                        {(c.kind === "title" || c.kind === "paragraph") && (
+                          <div className="space-y-2">
+                            <textarea className="glass-input text-sm" rows={2} value={c.text} onChange={(e) => {
+                              const next = [...specialSection.body]; next[idx] = { ...c, text: e.target.value };
+                              setSection({ ...specialSection, body: next });
+                            }} />
+                            <div className="flex gap-2">
+                              <div className="flex-1">
+                                <div className="glass-label text-xs mb-1">文字顏色</div>
+                                <input type="text" className="glass-input text-sm" value={c.color} onChange={(e) => {
+                                  const next = [...specialSection.body]; next[idx] = { ...c, color: e.target.value };
+                                  setSection({ ...specialSection, body: next });
+                                }} />
+                              </div>
+                              <div className="w-20">
+                                <div className="glass-label text-xs mb-1">大小</div>
+                                <select className="glass-input text-sm" value={c.size} onChange={(e) => {
+                                  const next = [...specialSection.body]; next[idx] = { ...c, size: e.target.value };
+                                  setSection({ ...specialSection, body: next });
+                                }}>
+                                  <option value="xs">XS</option><option value="sm">SM</option>
+                                  <option value="md">MD</option><option value="lg">LG</option><option value="xl">XL</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {c.kind === "key_value" && (
+                          <div className="grid grid-cols-2 gap-2">
+                            <input className="glass-input text-sm" placeholder="標籤" value={c.label} onChange={(e) => {
+                              const next = [...specialSection.body]; next[idx] = { ...c, label: e.target.value };
+                              setSection({ ...specialSection, body: next });
+                            }} />
+                            <input className="glass-input text-sm" placeholder="數值" value={c.value} onChange={(e) => {
+                              const next = [...specialSection.body]; next[idx] = { ...c, value: e.target.value };
+                              setSection({ ...specialSection, body: next });
+                            }} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </AccordionSection>
+            </>
+          ) : (
+            /* Regular Card Editor */
+            <>
           <AccordionSection
             title="封面圖片"
             subtitle="輪播卡片每張必填；建議使用 1.91:1 比例"
@@ -247,10 +416,10 @@ export default function EditDraft() {
                 <div className="glass-label mb-2">圖片比例</div>
                 <select
                   className="glass-input"
-                  value={section.hero[0]?.ratio || "1.91:1"}
+                  value={(section as any).hero?.[0]?.ratio || "1.91:1"}
                   onChange={(e) => {
                     const ratio = e.target.value as any;
-                    const hero = section.hero.map((c: any) => c.kind === "hero_image" ? { ...c, ratio } : c);
+                    const hero = (section as any).hero.map((c: any) => c.kind === "hero_image" ? { ...c, ratio } : c);
                     setSection({ ...section, hero });
                   }}
                 >
@@ -542,6 +711,8 @@ export default function EditDraft() {
               ))}
             </div>
           </AccordionSection>
+          </>
+          )}
 
           <div className="sticky bottom-4">
             <div className="glass-panel p-3 flex gap-2">

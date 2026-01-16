@@ -1,4 +1,4 @@
-import { DocModel, FooterButton } from "./types";
+import { DocModel, FooterButton, SpecialSection } from "./types";
 import { uid, autoTextColor } from "./utils";
 
 const PLACEHOLDER_URL = "/placeholder.svg";
@@ -66,6 +66,22 @@ export function seedCarousel(cardCount = 3, title = "新草稿（Carousel）"): 
         footer: [defaultButton("查看詳情", "https://example.com", "#0A84FF")],
       },
     })),
+  };
+}
+
+export function seedSpecialSection(): SpecialSection {
+  return {
+    kind: "special",
+    image: { kind: "external", url: PLACEHOLDER_URL, lastCheck: { ok: true, level: "pass", checkedAt: new Date().toISOString() } },
+    ratio: "2:3",
+    overlay: {
+      backgroundColor: "#03303Acc",
+      height: "auto",
+    },
+    body: [
+      { id: uid("t_"), kind: "title", enabled: true, text: "標題文字", size: "lg", weight: "bold", color: "#FFFFFF", align: "start" },
+      { id: uid("p_"), kind: "paragraph", enabled: true, text: "描述文字…", size: "md", color: "#FFFFFF", wrap: true },
+    ],
   };
 }
 
