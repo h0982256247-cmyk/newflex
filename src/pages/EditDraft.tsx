@@ -272,11 +272,6 @@ export default function EditDraft() {
             right={<span className="glass-badge">{section.body.filter((c: any) => c.enabled).length} 個</span>}
           >
             <div className="space-y-3">
-              <div className="glass-panel p-3 mb-3">
-                <ColorPicker label="背景顏色" value={section.styles?.body?.backgroundColor || ""} onChange={(v) => {
-                  setSection({ ...section, styles: { ...section.styles, body: { ...section.styles?.body, backgroundColor: v.toUpperCase() } } });
-                }} />
-              </div>
               <div className="grid grid-cols-3 gap-2">
                 <button className="glass-btn text-xs py-2" onClick={() => {
                   const next = [...section.body, { id: uid("t_"), kind: "title", enabled: true, text: "新標題", size: "lg", weight: "bold", color: "#111111", align: "start" }];
