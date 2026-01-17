@@ -9,11 +9,16 @@ export type ImageSource =
   | { kind: "upload"; assetId: string; url: string }
   | { kind: "external"; url: string; lastCheck?: ImageCheckResult };
 
+export type VideoSource =
+  | { kind: "upload"; assetId: string; url: string; previewAssetId: string; previewUrl: string }
+  | { kind: "external"; url: string; previewUrl: string };
+
 export type Action = { type: "uri"; uri: string } | { type: "message"; text: string } | { type: "share"; uri?: string };
 
 export type ComponentBase = { id: string; kind: string; enabled: boolean };
 
 export type HeroImage = ComponentBase & { kind: "hero_image"; image: ImageSource; ratio: ImgRatio; mode: ImgMode };
+export type HeroVideo = ComponentBase & { kind: "hero_video"; video: VideoSource; ratio: ImgRatio | "1:1"; action?: Action };
 
 export type BlockStyle = { backgroundColor?: string };
 export type BubbleStyles = { header?: BlockStyle; hero?: BlockStyle; body?: BlockStyle; footer?: BlockStyle };
@@ -28,7 +33,7 @@ export type Spacer = ComponentBase & { kind: "spacer"; size: "sm" | "md" | "lg" 
 export type FooterButton = ComponentBase & { kind: "footer_button"; label: string; action: Action; style: "primary" | "secondary"; bgColor: string; textColor: string; autoTextColor: boolean };
 
 export type Section = {
-  hero: HeroImage[];
+  hero: (HeroImage | HeroVideo)[];
   body: (TitleText | ParagraphText | KeyValueRow | ListBlock | Divider | Spacer)[];
   footer: FooterButton[];
   styles?: BubbleStyles;

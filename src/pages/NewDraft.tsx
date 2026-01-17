@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { createDoc, deleteTemplate, listTemplates, TemplateRow } from "@/lib/db";
-import { seedBubble, seedCarousel } from "@/lib/templates";
+import { seedBubble, seedCarousel, seedVideoBubble } from "@/lib/templates";
 
 export default function NewDraft() {
   const nav = useNavigate();
@@ -27,6 +27,7 @@ export default function NewDraft() {
   const builtinQuick = useMemo(() => {
     return [
       { key: "blank_bubble", name: "空白 Bubble", description: "從空白 bubble 開始", doc: seedBubble() },
+      { key: "video_bubble", name: "影片 Bubble", description: "包含影片的 bubble", doc: seedVideoBubble() },
       { key: "blank_carousel", name: "空白 Carousel", description: "從空白 carousel 開始（3 張）", doc: seedCarousel(3) },
     ];
   }, []);

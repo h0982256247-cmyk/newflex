@@ -60,12 +60,41 @@ export function seedCarousel(cardCount = 3, title = "新草稿（Carousel）"): 
           mode: "cover",
         }],
         body: [
-          { id: uid("t_"), kind: "title", enabled: true, text: `方案 ${String.fromCharCode(65+i)}｜最受歡迎`, size: "lg", weight: "bold", color: "#111111", align: "start" },
+          { id: uid("t_"), kind: "title", enabled: true, text: `方案 ${String.fromCharCode(65 + i)}｜最受歡迎`, size: "lg", weight: "bold", color: "#111111", align: "start" },
           { id: uid("p_"), kind: "paragraph", enabled: true, text: "簡短描述內容…", size: "md", color: "#333333", wrap: true },
         ],
         footer: [defaultButton("查看詳情", "https://example.com", "#0A84FF")],
       },
     })),
+  };
+}
+
+export function seedVideoBubble(title = "新草稿（影片 Bubble）"): DocModel {
+  return {
+    type: "bubble",
+    title,
+    bubbleSize: "kilo", // Video must be kilo, mega, or giga
+    section: {
+      hero: [{
+        id: uid("hero_"),
+        kind: "hero_video",
+        enabled: true,
+        video: {
+          kind: "external",
+          url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+          previewUrl: PLACEHOLDER_URL
+        },
+        ratio: "16:9",
+        action: { type: "uri", uri: "https://example.com" }
+      }],
+      body: [
+        { id: uid("t_"), kind: "title", enabled: true, text: "影片標題", size: "lg", weight: "bold", color: "#111111", align: "start" },
+        { id: uid("p_"), kind: "paragraph", enabled: true, text: "點擊影片以播放", size: "md", color: "#333333", wrap: true },
+      ],
+      footer: [
+        defaultButton("查看更多", "https://example.com", "#0A84FF"),
+      ],
+    },
   };
 }
 
@@ -85,4 +114,4 @@ export function seedSpecialSection(): SpecialSection {
   };
 }
 
-export const PALETTE = ["#0A84FF","#34C759","#FF9F0A","#FF453A","#AF52DE","#111111","#FFFFFF","#8E8E93"];
+export const PALETTE = ["#0A84FF", "#34C759", "#FF9F0A", "#FF453A", "#AF52DE", "#111111", "#FFFFFF", "#8E8E93"];

@@ -40,17 +40,37 @@ function safeHttpsUrl(url?: string) {
 
 function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: string, token?: string, liffId?: string) {
   const heroImg = section.hero.find((x: any) => x.enabled && x.kind === "hero_image") as any | undefined;
+  const heroVideo = section.hero.find((x: any) => x.enabled && x.kind === "hero_video") as any | undefined;
 
-  const heroUrl = heroImg ? safeHttpsUrl(heroImg?.image?.url) : null;
-  const hero = heroUrl
-    ? {
-      type: "image",
-      url: heroUrl,
-      size: "full",
-      aspectRatio: heroImg.ratio,
-      aspectMode: heroImg.mode,
+  let hero: any = undefined;
+
+  if (heroVideo) {
+    const videoUrl = safeHttpsUrl(heroVideo?.video?.url);
+    const previewUrl = safeHttpsUrl(heroVideo?.video?.previewUrl);
+    if (videoUrl && previewUrl) {
+      hero = {
+        type: "video",
+        url: videoUrl,
+        previewUrl: previewUrl,
+        aspectRatio: heroVideo.ratio || "16:9",
+        aspectMode: "cover",
+      };
+      if (heroVideo.action) {
+        hero.action = actionToFlex(heroVideo.action, undefined, docId, token, liffId);
+      }
     }
-    : undefined;
+  } else if (heroImg) {
+    const heroUrl = safeHttpsUrl(heroImg?.image?.url);
+    if (heroUrl) {
+      hero = {
+        type: "image",
+        url: heroUrl,
+        size: "full",
+        aspectRatio: heroImg.ratio,
+        aspectMode: heroImg.mode,
+      };
+    }
+  }
 
   const bodyContents: any[] = [];
   for (const c of section.body) {
