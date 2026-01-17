@@ -173,7 +173,13 @@ export default function EditDraft() {
                   <button
                     key={c.id}
                     draggable
-                    onDragStart={(e) => e.dataTransfer.setData("cardIdx", idx.toString())}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData("cardIdx", idx.toString());
+                      (e.target as HTMLElement).dataset.dragging = "true";
+                    }}
+                    onDragEnd={(e) => {
+                      delete (e.target as HTMLElement).dataset.dragging;
+                    }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                       const from = parseInt(e.dataTransfer.getData("cardIdx"));
@@ -183,7 +189,11 @@ export default function EditDraft() {
                       setSelectedCardIdx(idx);
                     }}
                     className={`glass-btn text-sm whitespace-nowrap cursor-move ${selectedCardIdx === idx ? (isSpecial ? "bg-purple-50 border-purple-200 text-purple-700" : "bg-blue-50 border-blue-200 text-blue-700") : "glass-btn--secondary"}`}
-                    onClick={() => setSelectedCardIdx(idx)}
+                    onClick={(e) => {
+                      // 避免拖放時觸發點擊
+                      if ((e.target as HTMLElement).dataset.dragging === "true") return;
+                      setSelectedCardIdx(idx);
+                    }}
                   >
                     {label}
                   </button>
