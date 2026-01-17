@@ -294,15 +294,28 @@ export default function EditDraft() {
                       </select>
                     </div>
                     <div>
-                      <div className="glass-label mb-2">背景顏色 (含透明度)</div>
-                      <input
-                        type="text"
-                        className="glass-input"
-                        value={specialSection.overlay?.backgroundColor || "#03303Acc"}
-                        onChange={(e) => setSection({ ...specialSection, overlay: { ...specialSection.overlay, backgroundColor: e.target.value } })}
-                        placeholder="#03303Acc"
-                      />
-                      <div className="text-xs opacity-70 mt-1">8位hex色碼，後2位為透明度</div>
+                      <div className="glass-label mb-2">背景顏色</div>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          className="w-10 h-10 rounded cursor-pointer border border-gray-300"
+                          value={(specialSection.overlay?.backgroundColor || "#03303A").substring(0, 7)}
+                          onChange={(e) => {
+                            const alpha = (specialSection.overlay?.backgroundColor || "#03303Acc").substring(7) || "cc";
+                            setSection({ ...specialSection, overlay: { ...specialSection.overlay, backgroundColor: e.target.value + alpha } });
+                          }}
+                        />
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            className="glass-input text-sm"
+                            value={specialSection.overlay?.backgroundColor || "#03303Acc"}
+                            onChange={(e) => setSection({ ...specialSection, overlay: { ...specialSection.overlay, backgroundColor: e.target.value } })}
+                            placeholder="#03303Acc"
+                          />
+                          <div className="text-xs opacity-70 mt-1">後2位為透明度 (00~ff)</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -314,7 +327,7 @@ export default function EditDraft() {
                         setSection({ ...specialSection, body: next });
                       }}>＋ 標題</button>
                       <button className="glass-btn text-xs py-2" onClick={() => {
-                        const next = [...specialSection.body, { id: uid("p_"), kind: "paragraph", enabled: true, text: "描述文字…", size: "md", color: "#FFFFFF", wrap: true }];
+                        const next = [...specialSection.body, { id: uid("p_"), kind: "paragraph", enabled: true, text: "描述文字…", size: "md", weight: "regular", color: "#FFFFFF", wrap: true }];
                         setSection({ ...specialSection, body: next });
                       }}>＋ 段落</button>
                       <button className="glass-btn text-xs py-2" onClick={() => {
@@ -338,11 +351,10 @@ export default function EditDraft() {
                               const next = [...specialSection.body]; next[idx] = { ...c, text: e.target.value };
                               setSection({ ...specialSection, body: next });
                             }} />
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 items-end">
                               <div className="flex-1">
-                                <div className="glass-label text-xs mb-1">文字顏色</div>
-                                <input type="text" className="glass-input text-sm" value={c.color} onChange={(e) => {
-                                  const next = [...specialSection.body]; next[idx] = { ...c, color: e.target.value };
+                                <ColorPicker label="文字顏色" value={c.color || "#FFFFFF"} onChange={(v) => {
+                                  const next = [...specialSection.body]; next[idx] = { ...c, color: v.toUpperCase() };
                                   setSection({ ...specialSection, body: next });
                                 }} />
                               </div>
