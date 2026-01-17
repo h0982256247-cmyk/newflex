@@ -2,12 +2,33 @@ import React, { useMemo } from "react";
 import { DocModel } from "@/lib/types";
 import { buildFlex } from "@/lib/buildFlex";
 
-export default function FlexPreview({ doc, flex }: { doc?: DocModel; flex?: any }) {
+export default function FlexPreview({ doc, flex, selectedIndex, onIndexChange }: { doc?: DocModel; flex?: any; selectedIndex?: number; onIndexChange?: (i: number) => void }) {
   const content = useMemo(() => {
     if (flex) return flex;
     if (doc) return buildFlex(doc);
     return null;
   }, [doc, flex]);
+
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (selectedIndex !== undefined && scrollRef.current) {
+      const cardWidth = 280 + 12; // width + gap
+      const target = selectedIndex * cardWidth;
+      // Check if scroll is needed to avoid fighting with user scroll
+      if (Math.abs(scrollRef.current.scrollLeft - target) > 10) {
+        scrollRef.current.scrollTo({ left: target, behavior: "smooth" });
+      }
+    }
+  }, [selectedIndex]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!onIndexChange) return;
+    const cardWidth = 280 + 12;
+    const idx = Math.round(e.currentTarget.scrollLeft / cardWidth);
+    // Deboucing could be good but for now direct call, parent should verify change
+    onIndexChange(idx);
+  };
 
   if (!content) return null;
 
@@ -21,12 +42,17 @@ export default function FlexPreview({ doc, flex }: { doc?: DocModel; flex?: any 
 
   if (root.type === "carousel") {
     return (
-      <div className="flex gap-3 overflow-x-auto pb-4 snap-x">
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex gap-3 overflow-x-auto pb-4 snap-x px-4 no-scrollbar"
+      >
         {root.contents.map((bubble: any, i: number) => (
           <div key={i} className="min-w-[280px] max-w-[280px] snap-center flex-shrink-0">
             <FlexBubble bubble={bubble} />
           </div>
         ))}
+        <div className="min-w-[1px]" />
       </div>
     );
   }
@@ -43,7 +69,7 @@ function FlexBubble({ bubble }: { bubble: any }) {
   const isFullBleed = bubble.body?.paddingAll === "0px";
 
   return (
-    <div className="bg-white rounded-[16px] overflow-hidden border border-gray-200 shadow-md font-sans">
+    <div className="bg-white rounded-[16px] overflow-hidden border border-gray-100 font-sans">
       {/* Hero */}
       {bubble.hero && <FlexImage node={bubble.hero} className="w-full" />}
 

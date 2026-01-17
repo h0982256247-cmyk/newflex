@@ -49,7 +49,7 @@ export type SpecialSection = {
 
 export type CardSection = Section | SpecialSection;
 export type BubbleDoc = { type: "bubble"; title: string; section: Section; bubbleSize?: BubbleSize; folderId?: string };
-export type CarouselDoc = { type: "carousel"; title: string; cards: { id: string; section: CardSection }[]; bubbleSize?: BubbleSize; folderId?: string };
+export type CarouselDoc = { type: "carousel"; title: string; cards: { id: string; name?: string; section: CardSection }[]; bubbleSize?: BubbleSize; folderId?: string };
 export type FolderDoc = { type: "folder"; id: string; name: string; parentId?: string };
 export type DocModel = BubbleDoc | CarouselDoc | FolderDoc;
 
