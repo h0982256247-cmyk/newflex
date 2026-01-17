@@ -65,10 +65,63 @@ function FlexBubble({ bubble }: { bubble: any }) {
   // Check if body has paddingAll="0px" (special card style)
   const isFullBleed = bubble.body?.paddingAll === "0px";
 
+  let heroEl = null;
+  // ===== Hero (可選) =====
+  if (bubble.hero) {
+    const hero = bubble.hero;
+    if (hero.type === "image") {
+      heroEl = (
+        <div
+          className="w-full bg-gray-100 overflow-hidden"
+          style={{
+            aspectRatio: hero.aspectRatio || "20:13",
+            maxHeight: "300px"
+          }}
+        >
+          <img
+            src={hero.url}
+            alt="Hero"
+            className={`w-full h-full object-${hero.aspectMode || "cover"}`}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder.svg";
+            }}
+          />
+        </div>
+      );
+    } else if (hero.type === "video") {
+      // 影片預覽：顯示預覽圖（點擊後可播放影片）
+      heroEl = (
+        <div
+          className="w-full bg-gray-100 overflow-hidden relative group cursor-pointer"
+          style={{
+            aspectRatio: hero.aspectRatio || "16:9",
+            maxHeight: "300px"
+          }}
+        >
+          <img
+            src={hero.previewUrl}
+            alt="Video Preview"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder.svg";
+            }}
+          />
+          {/* 播放按鈕圖標 */}
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 group-hover:bg-opacity-30 transition-all">
+            <div className="w-16 h-16 rounded-full bg-white bg-opacity-90 flex items-center justify-center shadow-lg">
+              <svg className="w-8 h-8 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="bg-white rounded-[16px] overflow-hidden border border-gray-100 font-sans">
-      {/* Hero */}
-      {bubble.hero && <FlexImage node={bubble.hero} className="w-full" />}
+      {heroEl}
 
       {/* Body */}
       {bubble.body && (
