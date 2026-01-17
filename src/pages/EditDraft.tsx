@@ -130,7 +130,7 @@ export default function EditDraft() {
               <span className="text-sm opacity-70">卡片大小</span>
               <select
                 className="glass-input py-1 text-sm"
-                value={(doc as any).bubbleSize || "giga"}
+                value={(doc as any).bubbleSize || "kilo"}
                 onChange={(e) => {
                   if (doc.type === "folder") return;
                   scheduleSave({ ...doc, bubbleSize: e.target.value as BubbleSize });

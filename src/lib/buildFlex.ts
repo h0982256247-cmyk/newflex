@@ -270,7 +270,7 @@ export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?
     return { type: "flex", altText: "Folder", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [] } } };
   }
 
-  const bubbleSize: BubbleSize = doc.bubbleSize || "giga";
+  const bubbleSize: BubbleSize = doc.bubbleSize || "kilo";
 
   if (doc.type === "bubble") {
     return {
