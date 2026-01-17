@@ -1,4 +1,4 @@
-import { DocModel, Section, FooterButton, Action, SizeToken, SpecialSection, CardSection } from "./types";
+import { DocModel, Section, FooterButton, Action, SizeToken, SpecialSection, CardSection, BubbleSize } from "./types";
 import { isHexColor } from "./utils";
 
 function sizeMap(s: SizeToken): string {
@@ -38,7 +38,7 @@ function safeHttpsUrl(url?: string) {
   return url;
 }
 
-function sectionToBubble(section: Section, docId?: string, token?: string, liffId?: string) {
+function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: string, token?: string, liffId?: string) {
   const heroImg = section.hero.find((x: any) => x.enabled && x.kind === "hero_image") as any | undefined;
 
   const heroUrl = heroImg ? safeHttpsUrl(heroImg?.image?.url) : null;
@@ -140,7 +140,7 @@ function sectionToBubble(section: Section, docId?: string, token?: string, liffI
 
   const bubble: any = {
     type: "bubble",
-    size: "giga",
+    size: bubbleSize,
   };
 
   bubble.body = {
@@ -158,7 +158,7 @@ function sectionToBubble(section: Section, docId?: string, token?: string, liffI
   return bubble;
 }
 
-function specialSectionToBubble(section: SpecialSection, docId?: string, token?: string, liffId?: string) {
+function specialSectionToBubble(section: SpecialSection, bubbleSize: BubbleSize, docId?: string, token?: string, liffId?: string) {
   const imageUrl = safeHttpsUrl(section.image?.url) || "https://placehold.co/600x900/png";
 
   // Build overlay body contents
@@ -241,7 +241,7 @@ function specialSectionToBubble(section: SpecialSection, docId?: string, token?:
 
   return {
     type: "bubble",
-    size: "giga",
+    size: bubbleSize,
     body: {
       type: "box",
       layout: "vertical",
@@ -270,11 +270,13 @@ export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?
     return { type: "flex", altText: "Folder", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [] } } };
   }
 
+  const bubbleSize: BubbleSize = doc.bubbleSize || "giga";
+
   if (doc.type === "bubble") {
     return {
       type: "flex",
       altText: doc.title || "Flex Message",
-      contents: sectionToBubble(doc.section, docId, token, liffId),
+      contents: sectionToBubble(doc.section, bubbleSize, docId, token, liffId),
     };
   }
 
@@ -288,9 +290,9 @@ export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?
       type: "carousel",
       contents: cards.map((c) => {
         if (isSpecialSection(c.section)) {
-          return specialSectionToBubble(c.section, docId, token, liffId);
+          return specialSectionToBubble(c.section, bubbleSize, docId, token, liffId);
         }
-        return sectionToBubble(c.section, docId, token, liffId);
+        return sectionToBubble(c.section, bubbleSize, docId, token, liffId);
       }),
     },
   };

@@ -7,7 +7,7 @@ import FlexPreview from "@/components/FlexPreview";
 import ColorPicker, { AutoTextColorHint } from "@/components/ColorPicker";
 import { buildFlex } from "@/lib/buildFlex";
 import { getDoc, saveDoc, createTemplateFromDoc, getActiveShareForDoc } from "@/lib/db";
-import { DocModel, FooterButton, ImageSource, SpecialSection } from "@/lib/types";
+import { DocModel, FooterButton, ImageSource, SpecialSection, BubbleSize } from "@/lib/types";
 import { uid, autoTextColor } from "@/lib/utils";
 import { seedSpecialSection } from "@/lib/templates";
 import { validateDoc } from "@/lib/validate";
@@ -125,7 +125,24 @@ export default function EditDraft() {
             />
             <div className="text-sm opacity-70">儲存：{saveState === "saving" ? "●" : saveState === "saved" ? "✓" : saveState === "error" ? "✗" : "—"}</div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
+              <span className="text-sm opacity-70">卡片大小</span>
+              <select
+                className="glass-input py-1 text-sm"
+                value={(doc as any).bubbleSize || "giga"}
+                onChange={(e) => {
+                  if (doc.type === "folder") return;
+                  scheduleSave({ ...doc, bubbleSize: e.target.value as BubbleSize });
+                }}
+              >
+                <option value="nano">Nano (最小)</option>
+                <option value="micro">Micro</option>
+                <option value="kilo">Kilo</option>
+                <option value="mega">Mega</option>
+                <option value="giga">Giga (最大)</option>
+              </select>
+            </div>
             <button className="glass-btn glass-btn--secondary" onClick={async () => {
               const name = prompt("範本名稱（儲存後可在「新增草稿」直接使用）");
               if (!name) return;
