@@ -32,7 +32,6 @@ export default function EditDraft() {
   const [jsonCode, setJsonCode] = useState<string | null>(null);
   const [activeShare, setActiveShare] = useState<{ token: string; version_no: number } | null>(null);
   const [editingNameIdx, setEditingNameIdx] = useState<number | null>(null);
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const saveTimer = useRef<number | null>(null);
 
   // 分享連結使用 LIFF URL 格式（自動觸發分享）
@@ -202,62 +201,42 @@ export default function EditDraft() {
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") e.currentTarget.blur();
+                      if (e.key === "Escape") setEditingNameIdx(null);
                     }}
                   />
                 ) : (
                   <button
                     key={c.id}
                     draggable
-                    onMouseDown={(e) => {
-                      // Long press to edit name (800ms)
-                      const timer = setTimeout(() => {
-                        setEditingNameIdx(idx);
-                      }, 800);
-                      setLongPressTimer(timer);
-                    }}
-                    onMouseUp={() => {
-                      if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        setLongPressTimer(null);
-                      }
-                    }}
-                    onMouseLeave={() => {
-                      if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        setLongPressTimer(null);
-                      }
-                    }}
                     onDragStart={(e) => {
-                      // Cancel long press on drag start
-                      if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        setLongPressTimer(null);
-                      }
+                      e.dataTransfer.effectAllowed = "move";
                       e.dataTransfer.setData("cardIdx", idx.toString());
-                      (e.target as HTMLElement).dataset.dragging = "true";
+                      (e.currentTarget as HTMLElement).style.opacity = "0.4";
                     }}
                     onDragEnd={(e) => {
-                      delete (e.target as HTMLElement).dataset.dragging;
+                      (e.currentTarget as HTMLElement).style.opacity = "1";
                     }}
-                    onDragOver={(e) => e.preventDefault()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                    }}
                     onDrop={(e) => {
+                      e.preventDefault();
                       const from = parseInt(e.dataTransfer.getData("cardIdx"));
                       if (isNaN(from) || from === idx) return;
                       const nextCards = moveItem(doc.cards, from, idx);
                       scheduleSave({ ...doc, cards: nextCards });
                       setSelectedCardIdx(idx);
                     }}
-                    className={`glass-btn text-sm whitespace-nowrap cursor-move ${selectedCardIdx === idx ? (isSpecial ? "bg-purple-50 border-purple-200 text-purple-700" : "bg-blue-50 border-blue-200 text-blue-700") : "glass-btn--secondary"}`}
-                    onClick={(e) => {
-                      // 避免拖放時觸發點擊
-                      if ((e.target as HTMLElement).dataset.dragging === "true") return;
-                      setSelectedCardIdx(idx);
-                    }}
+                    className={`glass-btn text-sm whitespace-nowrap cursor-move rounded-full px-4 ${selectedCardIdx === idx ? (isSpecial ? "bg-purple-100 border-purple-300 text-purple-700 font-medium" : "bg-blue-100 border-blue-300 text-blue-700 font-medium") : "glass-btn--secondary hover:bg-gray-100"}`}
+                    onClick={() => setSelectedCardIdx(idx)}
+                    onDoubleClick={() => setEditingNameIdx(idx)}
                   >
                     {displayName}
                   </button>
                 );
               })}
+
               <div className="w-px h-6 bg-gray-300 mx-1 flex-shrink-0" />
 
               <div className="relative">
