@@ -10,12 +10,14 @@ export default function FlexPreview({ doc, flex, selectedIndex, onIndexChange }:
   }, [doc, flex]);
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const lastIndexRef = React.useRef<number>(-1);
 
   React.useEffect(() => {
     if (selectedIndex !== undefined && scrollRef.current) {
       const cardWidth = 280 + 12; // width + gap
       const target = selectedIndex * cardWidth;
       scrollRef.current.scrollTo({ left: target, behavior: "smooth" });
+      lastIndexRef.current = selectedIndex;
     }
   }, [selectedIndex]);
 
@@ -23,8 +25,11 @@ export default function FlexPreview({ doc, flex, selectedIndex, onIndexChange }:
     if (!onIndexChange) return;
     const cardWidth = 280 + 12;
     const idx = Math.round(e.currentTarget.scrollLeft / cardWidth);
-    // Deboucing could be good but for now direct call, parent should verify change
-    onIndexChange(idx);
+    // Only call onIndexChange if index actually changed
+    if (idx !== lastIndexRef.current) {
+      lastIndexRef.current = idx;
+      onIndexChange(idx);
+    }
   };
 
   if (!content) return null;

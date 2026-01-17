@@ -53,7 +53,6 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
         url: videoUrl,
         previewUrl: previewUrl,
         aspectRatio: heroVideo.ratio || "16:9",
-        aspectMode: "cover",
       };
       if (heroVideo.action) {
         hero.action = actionToFlex(heroVideo.action, undefined, docId, token, liffId);
