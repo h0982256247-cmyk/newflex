@@ -143,7 +143,15 @@ export default function EditDraft() {
         {doc.type === "carousel" && (
           <div className="mt-4 flex flex-wrap gap-2 items-center">
             <div className="flex gap-2 overflow-x-auto pb-2 flex-1">
-              {doc.cards.map((c, idx) => (
+              {doc.cards.map((c, idx) => {
+                const isSpecial = (c.section as SpecialSection).kind === "special";
+                // Count how many cards of this type come before this one
+                const sameTypeCount = doc.cards.slice(0, idx).filter(card =>
+                  ((card.section as SpecialSection).kind === "special") === isSpecial
+                ).length + 1;
+                const label = isSpecial ? `特殊 ${sameTypeCount}` : `卡片 ${sameTypeCount}`;
+
+                return (
                 <button
                   key={c.id}
                   draggable
@@ -156,12 +164,12 @@ export default function EditDraft() {
                     scheduleSave({ ...doc, cards: nextCards });
                     setSelectedCardIdx(idx);
                   }}
-                  className={`glass-btn text-sm whitespace-nowrap cursor-move ${selectedCardIdx === idx ? "bg-blue-50 border-blue-200 text-blue-700" : "glass-btn--secondary"}`}
+                  className={`glass-btn text-sm whitespace-nowrap cursor-move ${selectedCardIdx === idx ? (isSpecial ? "bg-purple-50 border-purple-200 text-purple-700" : "bg-blue-50 border-blue-200 text-blue-700") : "glass-btn--secondary"}`}
                   onClick={() => setSelectedCardIdx(idx)}
                 >
-                  卡片 {idx + 1}
+                  {label}
                 </button>
-              ))}
+              );})}
               <button className="glass-btn glass-btn--secondary text-sm" onClick={() => {
                 const newCard = {
                   id: uid("card_"),

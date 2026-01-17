@@ -240,6 +240,7 @@ function specialSectionToBubble(section: SpecialSection, docId?: string, token?:
 
   return {
     type: "bubble",
+    size: "full",
     body: {
       type: "box",
       layout: "vertical",

@@ -39,6 +39,9 @@ export default function FlexPreview({ doc, flex }: { doc?: DocModel; flex?: any 
 }
 
 function FlexBubble({ bubble }: { bubble: any }) {
+  // Check if body has paddingAll="0px" (special card style)
+  const isFullBleed = bubble.body?.paddingAll === "0px";
+
   return (
     <div className="bg-white rounded-[16px] overflow-hidden border border-gray-200 shadow-md font-sans">
       {/* Hero */}
@@ -46,8 +49,8 @@ function FlexBubble({ bubble }: { bubble: any }) {
 
       {/* Body */}
       {bubble.body && (
-        <div className="px-5 py-4">
-          <FlexBox box={bubble.body} />
+        <div className={isFullBleed ? "" : "px-5 py-4"} style={isFullBleed ? { position: "relative" } : undefined}>
+          <FlexBox box={bubble.body} isRoot />
         </div>
       )}
 
@@ -61,7 +64,7 @@ function FlexBubble({ bubble }: { bubble: any }) {
   );
 }
 
-function FlexBox({ box }: { box: any }) {
+function FlexBox({ box, isRoot }: { box: any; isRoot?: boolean }) {
   if (!box.contents || !Array.isArray(box.contents)) return null;
 
   const style: React.CSSProperties = {
@@ -69,12 +72,27 @@ function FlexBox({ box }: { box: any }) {
     flexDirection: box.layout === "vertical" ? "column" : "row",
     gap: getSize(box.spacing) || "8px",
     alignItems: box.layout === "baseline" ? "baseline" : box.alignItems === "center" ? "center" : box.layout === "horizontal" ? "center" : "stretch",
-    justifyContent: box.justifyContent === "center" ? "center" : undefined,
+    justifyContent: box.justifyContent === "center" ? "center" : box.justifyContent === "flex-end" ? "flex-end" : undefined,
     backgroundColor: box.backgroundColor,
     borderRadius: box.cornerRadius ? getCornerRadius(box.cornerRadius) : undefined,
     padding: box.paddingAll,
     cursor: box.action ? "pointer" : undefined,
   };
+
+  // Handle absolute positioning for overlay boxes
+  if (box.position === "absolute") {
+    style.position = "absolute";
+    style.bottom = box.offsetBottom || undefined;
+    style.left = box.offsetStart || undefined;
+    style.right = box.offsetEnd || undefined;
+    style.top = box.offsetTop || undefined;
+    if (box.height) style.height = box.height;
+  }
+
+  // Root box needs relative positioning if it contains absolute children
+  if (isRoot && box.contents.some((c: any) => c.position === "absolute")) {
+    style.position = "relative";
+  }
 
   const handleClick = () => {
     if (box.action) {
