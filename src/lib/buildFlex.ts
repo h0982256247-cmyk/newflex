@@ -140,6 +140,7 @@ function sectionToBubble(section: Section, docId?: string, token?: string, liffI
 
   const bubble: any = {
     type: "bubble",
+    size: "giga",
   };
 
   bubble.body = {
