@@ -86,6 +86,11 @@ export default function EditDraft() {
   const section = doc.type === "bubble" ? doc.section : doc.cards[currentCardIdx].section;
   const isSpecialCard = (section as SpecialSection).kind === "special";
   const specialSection = isSpecialCard ? (section as SpecialSection) : null;
+
+  // Check if hero contains video
+  const isVideoHero = !isSpecialCard && (section as any).hero?.some((h: any) => h.kind === "hero_video");
+  const heroVideo = isVideoHero ? (section as any).hero.find((h: any) => h.kind === "hero_video") : null;
+
   const report = validateDoc(doc);
 
   const setSection = (next: any) => {
@@ -104,9 +109,19 @@ export default function EditDraft() {
   };
 
   const updateHeroImageSource = async (img: ImageSource) => {
-    if (isSpecialCard) return; // Special cards don't have hero array
+    if (isSpecialCard || isVideoHero) return; // Special cards and video heroes don't have hero_image
     const regularSection = section as any;
     const hero = regularSection.hero.map((c: any) => (c.kind === "hero_image" ? { ...c, image: img } : c));
+    setSection({ ...regularSection, hero });
+  };
+
+  const updateHeroVideoSource = async (videoUrl: string, previewUrl: string, assetId?: string, previewAssetId?: string) => {
+    if (isSpecialCard || !isVideoHero) return;
+    const regularSection = section as any;
+    const videoSource = assetId
+      ? { kind: "upload" as const, assetId, url: videoUrl, previewAssetId: previewAssetId || "", previewUrl }
+      : { kind: "external" as const, url: videoUrl, previewUrl };
+    const hero = regularSection.hero.map((c: any) => (c.kind === "hero_video" ? { ...c, video: videoSource } : c));
     setSection({ ...regularSection, hero });
   };
 
@@ -414,6 +429,73 @@ export default function EditDraft() {
                         )}
                       </div>
                     ))}
+                  </div>
+                </div>
+              </AccordionSection>
+            </>
+          ) : isVideoHero && heroVideo ? (
+            <>
+              <AccordionSection
+                title="影片封面"
+                subtitle="上傳影片檔案（MP4，最大 200MB）與預覽圖"
+                open={open === "hero"}
+                onToggle={() => setOpen(open === "hero" ? "body" : "hero")}
+                right={<span className="glass-badge">影片</span>}
+              >
+                <div className="space-y-3">
+                  <label className="glass-btn glass-btn--secondary w-full justify-center">
+                    上傳影片
+                    <input type="file" accept="video/mp4" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 200 * 1024 * 1024) return alert(`影片檔案過大，請小於 200 MB\n目前大小：${(file.size / 1024 / 1024).toFixed(1)} MB`);
+                      try {
+                        const ext = file.name.split(".").pop();
+                        const path = `${uid("video_")}.${ext}`;
+                        const { error } = await supabase.storage.from("flex-assets").upload(path, file);
+                        if (error) return alert("上傳失敗：" + error.message);
+                        const { data: { publicUrl } } = supabase.storage.from("flex-assets").getPublicUrl(path);
+                        await updateHeroVideoSource(publicUrl, heroVideo.video?.previewUrl || "", path, heroVideo.video?.kind === "upload" ? heroVideo.video.previewAssetId : "");
+                      } catch (err: any) {
+                        alert("上傳錯誤：" + err.message);
+                      }
+                    }} />
+                  </label>
+                  <label className="glass-btn glass-btn--secondary w-full justify-center">
+                    上傳預覽圖
+                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 1 * 1024 * 1024) return alert("檔案過大，請小於 1MB");
+                      try {
+                        const ext = file.name.split(".").pop();
+                        const path = `${uid("img_")}.${ext}`;
+                        const { error } = await supabase.storage.from("flex-assets").upload(path, file);
+                        if (error) return alert("上傳失敗：" + error.message);
+                        const { data: { publicUrl } } = supabase.storage.from("flex-assets").getPublicUrl(path);
+                        await updateHeroVideoSource(heroVideo.video?.url || "", publicUrl, heroVideo.video?.kind === "upload" ? heroVideo.video.assetId : "", path);
+                      } catch (err: any) {
+                        alert("上傳錯誤：" + err.message);
+                      }
+                    }} />
+                  </label>
+                  <div className="mt-3">
+                    <div className="glass-label mb-2">影片比例</div>
+                    <select
+                      className="glass-input"
+                      value={heroVideo.ratio || "16:9"}
+                      onChange={(e) => {
+                        const regularSection = section as any;
+                        const hero = regularSection.hero.map((c: any) => (c.kind === "hero_video" ? { ...c, ratio: e.target.value } : c));
+                        setSection({ ...regularSection, hero });
+                      }}
+                    >
+                      <option value="20:13">20:13 (標準卡片)</option>
+                      <option value="9:16">9:16 (滿版/直向)</option>
+                      <option value="16:9">16:9 (寬螢幕)</option>
+                      <option value="4:3">4:3 (標準)</option>
+                      <option value="1:1">1:1 (正方形)</option>
+                    </select>
                   </div>
                 </div>
               </AccordionSection>
