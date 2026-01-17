@@ -91,20 +91,56 @@ export function validateDoc(doc: DocModel): ValidationReport {
 
     // Regular section validation
     const bodyEnabled = (section.body || []).filter((c: any) => c.enabled !== false);
-    // if (bodyEnabled.length < 1) errors.push(issue("error","E_BODY_EMPTY","Body 至少需要加入 1 個內容元件", `${base}.body`));
+
+    // Check for hero (image or video)
+    const heroImage = (section.hero || []).find((c: any) => c.enabled !== false && c.kind === "hero_image");
+    const heroVideo = (section.hero || []).find((c: any) => c.enabled !== false && c.kind === "hero_video");
+
     if (requireHero) {
-      const hero = (section.hero || []).find((c: any) => c.enabled !== false && c.kind === "hero_image");
-      if (!hero) errors.push(issue("error", "E_HERO_IMAGE_REQUIRED", "每張卡片都必須有 Hero 主圖", `${base}.hero`));
-      else if (!imagePublishable(hero.image)) warnings.push(issue("warn", "W_IMAGE_PUBLISH_BLOCK", "圖片不可確認可被 LINE 讀取（可預覽但不可發布）", `${base}.hero_image`));
-    } else {
-      const hero = (section.hero || []).find((c: any) => c.enabled !== false && c.kind === "hero_image");
-      if (hero && !imagePublishable(hero.image)) warnings.push(issue("warn", "W_IMAGE_PUBLISH_BLOCK", "圖片不可確認可被 LINE 讀取（可預覽但不可發布）", `${base}.hero_image`));
+      if (!heroImage && !heroVideo) {
+        errors.push(issue("error", "E_HERO_REQUIRED", "每張卡片都必須有 Hero（圖片或影片）", `${base}.hero`));
+      }
     }
+
+    // Validate hero image
+    if (heroImage && !imagePublishable(heroImage.image)) {
+      warnings.push(issue("warn", "W_IMAGE_PUBLISH_BLOCK", "圖片不可確認可被 LINE 讀取（可預覽但不可發布）", `${base}.hero_image`));
+    }
+
+    // Validate hero video
+    if (heroVideo) {
+      const videoUrl = heroVideo.video?.url;
+      const previewUrl = heroVideo.video?.previewUrl;
+
+      if (!videoUrl || !videoUrl.trim()) {
+        errors.push(issue("error", "E_VIDEO_URL_REQUIRED", "影片 URL 為必填", `${base}.hero_video.url`));
+      } else if (!videoUrl.startsWith("https://")) {
+        errors.push(issue("error", "E_VIDEO_URL_HTTPS", "影片 URL 必須使用 HTTPS", `${base}.hero_video.url`));
+      }
+
+      if (!previewUrl || !previewUrl.trim()) {
+        errors.push(issue("error", "E_VIDEO_PREVIEW_REQUIRED", "影片預覽圖為必填", `${base}.hero_video.previewUrl`));
+      } else if (!previewUrl.startsWith("https://") && !previewUrl.startsWith("/")) {
+        warnings.push(issue("warn", "W_VIDEO_PREVIEW_HTTPS", "影片預覽圖建議使用 HTTPS", `${base}.hero_video.previewUrl`));
+      }
+    }
+
     checkBody(section.body || [], `${base}.body`);
     checkFooter(section.footer || [], `${base}.footer`);
   };
 
-  if (doc.type === "bubble") checkSection(doc.section, "section", false);
+  if (doc.type === "bubble") {
+    checkSection(doc.section, "section", false);
+
+    // Check if bubble has video hero - must have valid bubbleSize
+    const heroVideo = (doc.section.hero || []).find((c: any) => c.enabled !== false && c.kind === "hero_video");
+    if (heroVideo) {
+      const validSizes = ["kilo", "mega", "giga"];
+      if (!doc.bubbleSize || !validSizes.includes(doc.bubbleSize)) {
+        errors.push(issue("error", "E_VIDEO_BUBBLE_SIZE", "影片 Bubble 的 bubbleSize 必須是 kilo、mega 或 giga", "bubbleSize"));
+      }
+    }
+  }
   else if (doc.type === "carousel") {
     if (doc.cards.length < 1) errors.push(issue("error", "E_CAROUSEL_EMPTY", "Carousel 至少需要 1 張卡片", "cards"));
     if (doc.cards.length > 5) errors.push(issue("error", "E_CAROUSEL_TOO_MANY", "Carousel 最多只能 5 張卡片", "cards"));
