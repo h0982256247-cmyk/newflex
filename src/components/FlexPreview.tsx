@@ -15,10 +15,7 @@ export default function FlexPreview({ doc, flex, selectedIndex, onIndexChange }:
     if (selectedIndex !== undefined && scrollRef.current) {
       const cardWidth = 280 + 12; // width + gap
       const target = selectedIndex * cardWidth;
-      // Check if scroll is needed to avoid fighting with user scroll
-      if (Math.abs(scrollRef.current.scrollLeft - target) > 10) {
-        scrollRef.current.scrollTo({ left: target, behavior: "smooth" });
-      }
+      scrollRef.current.scrollTo({ left: target, behavior: "smooth" });
     }
   }, [selectedIndex]);
 
