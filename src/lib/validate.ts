@@ -79,14 +79,25 @@ export function validateDoc(doc: DocModel): ValidationReport {
   };
 
   const checkSection = (section: any, base: string, requireHero: boolean) => {
-    const bodyEnabled = section.body.filter((c: any) => c.enabled !== false);
+    // Handle SpecialSection (has kind: "special")
+    if (section.kind === "special") {
+      // Special section validation
+      if (section.image && !imagePublishable(section.image)) {
+        warnings.push(issue("warn", "W_IMAGE_PUBLISH_BLOCK", "圖片不可確認可被 LINE 讀取（可預覽但不可發布）", `${base}.image`));
+      }
+      checkBody(section.body || [], `${base}.body`);
+      return;
+    }
+
+    // Regular section validation
+    const bodyEnabled = (section.body || []).filter((c: any) => c.enabled !== false);
     // if (bodyEnabled.length < 1) errors.push(issue("error","E_BODY_EMPTY","Body 至少需要加入 1 個內容元件", `${base}.body`));
     if (requireHero) {
-      const hero = section.hero.find((c: any) => c.enabled !== false && c.kind === "hero_image");
+      const hero = (section.hero || []).find((c: any) => c.enabled !== false && c.kind === "hero_image");
       if (!hero) errors.push(issue("error", "E_HERO_IMAGE_REQUIRED", "每張卡片都必須有 Hero 主圖", `${base}.hero`));
       else if (!imagePublishable(hero.image)) warnings.push(issue("warn", "W_IMAGE_PUBLISH_BLOCK", "圖片不可確認可被 LINE 讀取（可預覽但不可發布）", `${base}.hero_image`));
     } else {
-      const hero = section.hero.find((c: any) => c.enabled !== false && c.kind === "hero_image");
+      const hero = (section.hero || []).find((c: any) => c.enabled !== false && c.kind === "hero_image");
       if (hero && !imagePublishable(hero.image)) warnings.push(issue("warn", "W_IMAGE_PUBLISH_BLOCK", "圖片不可確認可被 LINE 讀取（可預覽但不可發布）", `${base}.hero_image`));
     }
     checkBody(section.body || [], `${base}.body`);

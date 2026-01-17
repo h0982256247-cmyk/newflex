@@ -622,20 +622,20 @@ export default function EditDraft() {
                       <button
                         className="glass-btn glass-btn--secondary p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500"
                         disabled={idx === 0}
-                        onClick={() => setSection({ ...section, footer: moveItem(section.footer, idx, idx - 1) })}
+                        onClick={() => setSection({ ...section, footer: moveItem((section as any).footer, idx, idx - 1) })}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6" /></svg>
                       </button>
                       <button
                         className="glass-btn glass-btn--secondary p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500"
-                        disabled={idx === section.footer.length - 1}
-                        onClick={() => setSection({ ...section, footer: moveItem(section.footer, idx, idx + 1) })}
+                        disabled={idx === (section as any).footer.length - 1}
+                        onClick={() => setSection({ ...section, footer: moveItem((section as any).footer, idx, idx + 1) })}
                       >
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
                       </button>
                       <div className="w-px h-4 bg-gray-300 mx-1"></div>
                       <button className="glass-btn glass-btn--secondary px-3 py-1.5 text-xs text-red-600 hover:bg-red-50" onClick={() => {
-                        const next = section.footer.filter((_: any, i: number) => i !== idx);
+                        const next = (section as any).footer.filter((_: any, i: number) => i !== idx);
                         setSection({ ...section, footer: next });
                       }}>刪除</button>
                     </div>
@@ -647,14 +647,14 @@ export default function EditDraft() {
                         <div className="flex-1">
                           <div className="glass-label mb-1">按鈕文字</div>
                           <input className="glass-input w-full" value={b.label} onChange={(e) => {
-                            const next = [...section.footer]; next[idx] = { ...b, label: e.target.value }; setSection({ ...section, footer: next });
+                            const next = [...(section as any).footer]; next[idx] = { ...b, label: e.target.value }; setSection({ ...section, footer: next });
                           }} />
                         </div>
                         <div className="w-1/3">
                           <div className="glass-label mb-1">動作類型</div>
                           <select className="glass-input w-full py-1.5" value={b.action.type} onChange={(e) => {
                             const type = e.target.value as any;
-                            const next = [...section.footer];
+                            const next = [...(section as any).footer];
                             if (type === "uri") next[idx] = { ...b, action: { type, uri: "" } };
                             else if (type === "message") next[idx] = { ...b, action: { type, text: "" } };
                             else if (type === "share") next[idx] = { ...b, action: { type, uri: "" } };
@@ -677,7 +677,7 @@ export default function EditDraft() {
                           value={b.action.type === "uri" ? b.action.uri : b.action.type === "message" ? b.action.text : (shareUrl || "尚未發布，請先至預覽頁發布")}
                           onChange={(e) => {
                             if (b.action.type === "share") return;
-                            const next = [...section.footer];
+                            const next = [...(section as any).footer];
                             if (b.action.type === "uri") next[idx] = { ...b, action: { ...b.action, uri: e.target.value } };
                             else if (b.action.type === "message") next[idx] = { ...b, action: { ...b.action, text: e.target.value } };
                             setSection({ ...section, footer: next });
@@ -694,18 +694,18 @@ export default function EditDraft() {
                     <summary className="cursor-pointer font-semibold text-sm">顏色設定</summary>
                     <div className="mt-3 space-y-4">
                       <ColorPicker label="背景色" value={b.bgColor} onChange={(v) => {
-                        const next = [...section.footer];
+                        const next = [...(section as any).footer];
                         next[idx] = { ...b, bgColor: v.toUpperCase(), textColor: b.autoTextColor ? autoTextColor(v) : b.textColor };
                         setSection({ ...section, footer: next });
                       }} />
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-xs opacity-70">文字色：{b.textColor}</div>
                         <button className="glass-btn glass-btn--secondary px-3 py-2 text-xs" onClick={() => {
-                          const next = [...section.footer]; next[idx] = { ...b, textColor: autoTextColor(b.bgColor), autoTextColor: true }; setSection({ ...section, footer: next });
+                          const next = [...(section as any).footer]; next[idx] = { ...b, textColor: autoTextColor(b.bgColor), autoTextColor: true }; setSection({ ...section, footer: next });
                         }}>自動</button>
                       </div>
                       <ColorPicker label="文字色（手動）" value={b.textColor} onChange={(v) => {
-                        const next = [...section.footer]; next[idx] = { ...b, textColor: v.toUpperCase(), autoTextColor: false }; setSection({ ...section, footer: next });
+                        const next = [...(section as any).footer]; next[idx] = { ...b, textColor: v.toUpperCase(), autoTextColor: false }; setSection({ ...section, footer: next });
                       }} />
                       <AutoTextColorHint bgColor={b.bgColor} textColor={b.textColor} />
                     </div>
