@@ -82,7 +82,7 @@ export function seedVideoBubble(title = "新草稿（影片 Bubble）"): DocMode
         video: {
           kind: "external",
           url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-          previewUrl: PLACEHOLDER_URL
+          previewUrl: "https://placehold.co/600x400/EEE/999?text=Video+Preview"
         },
         ratio: "16:9",
         action: { type: "uri", uri: "https://example.com" }
