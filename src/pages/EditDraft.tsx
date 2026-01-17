@@ -32,6 +32,7 @@ export default function EditDraft() {
   const [jsonCode, setJsonCode] = useState<string | null>(null);
   const [activeShare, setActiveShare] = useState<{ token: string; version_no: number } | null>(null);
   const [editingNameIdx, setEditingNameIdx] = useState<number | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const saveTimer = useRef<number | null>(null);
 
   // 分享連結使用 LIFF URL 格式（自動觸發分享）
@@ -175,20 +176,63 @@ export default function EditDraft() {
 
         {doc.type === "carousel" && (
           <div className="mt-4 flex flex-wrap gap-2 items-center">
-            <div className="flex gap-2 overflow-x-auto pb-2 flex-1">
+            <div className="flex gap-2 overflow-x-auto pb-2 flex-1 items-center">
               {doc.cards.map((c, idx) => {
                 const isSpecial = (c.section as SpecialSection).kind === "special";
-                // Count how many cards of this type come before this one
                 const sameTypeCount = doc.cards.slice(0, idx).filter(card =>
                   ((card.section as SpecialSection).kind === "special") === isSpecial
                 ).length + 1;
-                const label = isSpecial ? `特殊 ${sameTypeCount}` : `卡片 ${sameTypeCount}`;
+                const defaultLabel = isSpecial ? `特殊 ${sameTypeCount}` : `卡片 ${sameTypeCount}`;
+                const displayName = c.name || defaultLabel;
 
-                return (
+                return editingNameIdx === idx ? (
+                  <input
+                    key={c.id}
+                    autoFocus
+                    className="glass-input text-sm py-1 px-2 w-24 text-center rounded-full"
+                    defaultValue={c.name || defaultLabel}
+                    onBlur={(e) => {
+                      const val = e.target.value.trim();
+                      if (val) {
+                        const nextCards = [...doc.cards];
+                        nextCards[idx] = { ...c, name: val };
+                        scheduleSave({ ...doc, cards: nextCards });
+                      }
+                      setEditingNameIdx(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") e.currentTarget.blur();
+                    }}
+                  />
+                ) : (
                   <button
                     key={c.id}
                     draggable
+                    onMouseDown={(e) => {
+                      // Long press to edit name (800ms)
+                      const timer = setTimeout(() => {
+                        setEditingNameIdx(idx);
+                      }, 800);
+                      setLongPressTimer(timer);
+                    }}
+                    onMouseUp={() => {
+                      if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        setLongPressTimer(null);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        setLongPressTimer(null);
+                      }
+                    }}
                     onDragStart={(e) => {
+                      // Cancel long press on drag start
+                      if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        setLongPressTimer(null);
+                      }
                       e.dataTransfer.setData("cardIdx", idx.toString());
                       (e.target as HTMLElement).dataset.dragging = "true";
                     }}
@@ -210,34 +254,54 @@ export default function EditDraft() {
                       setSelectedCardIdx(idx);
                     }}
                   >
-                    {label}
+                    {displayName}
                   </button>
                 );
               })}
-              <button className="glass-btn glass-btn--secondary text-sm" onClick={() => {
-                const newCard = {
-                  id: uid("card_"),
-                  section: {
-                    hero: [{
-                      id: uid("hero_"), kind: "hero_image", enabled: true,
-                      image: { kind: "external", url: "https://placehold.co/600x400/png", lastCheck: { ok: true, level: "pass" } },
-                      ratio: "20:13", mode: "cover"
-                    }],
-                    body: [],
-                    footer: []
-                  } as any
-                };
-                scheduleSave({ ...doc, cards: [...doc.cards, newCard] });
-                setSelectedCardIdx(doc.cards.length);
-              }}>＋ 一般卡片</button>
-              <button className="glass-btn glass-btn--secondary text-sm text-purple-600" onClick={() => {
-                const newCard = {
-                  id: uid("card_"),
-                  section: seedSpecialSection()
-                };
-                scheduleSave({ ...doc, cards: [...doc.cards, newCard] });
-                setSelectedCardIdx(doc.cards.length);
-              }}>＋ 特殊卡片</button>
+              <div className="w-px h-6 bg-gray-300 mx-1 flex-shrink-0" />
+
+              <div className="relative">
+                <select
+                  className="glass-btn glass-btn--secondary text-sm px-3 pr-8 rounded-full appearance-none cursor-pointer bg-white hover:bg-gray-50"
+                  value=""
+                  onChange={(e) => {
+                    const cardType = e.target.value;
+                    if (!cardType) return;
+
+                    let newCard;
+                    if (cardType === "regular") {
+                      newCard = {
+                        id: uid("card_"),
+                        section: {
+                          hero: [{
+                            id: uid("hero_"), kind: "hero_image", enabled: true,
+                            image: { kind: "external", url: "https://placehold.co/600x400/png", lastCheck: { ok: true, level: "pass" } },
+                            ratio: "20:13", mode: "cover"
+                          }],
+                          body: [],
+                          footer: []
+                        } as any
+                      };
+                    } else {
+                      newCard = {
+                        id: uid("card_"),
+                        section: seedSpecialSection()
+                      };
+                    }
+
+                    scheduleSave({ ...doc, cards: [...doc.cards, newCard] });
+                    setSelectedCardIdx(doc.cards.length);
+                    e.target.value = "";
+                  }}
+                >
+                  <option value="">＋ 卡片</option>
+                  <option value="regular">一般卡片</option>
+                  <option value="special">特殊卡片</option>
+                </select>
+                <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
             </div>
 
             <div className="flex gap-2">
