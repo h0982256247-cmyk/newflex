@@ -208,13 +208,22 @@ export default function EditDraft() {
                   <button
                     key={c.id}
                     draggable
+                    onMouseDown={(e) => {
+                      // Track if drag started
+                      (e.currentTarget as any)._isDragging = false;
+                    }}
                     onDragStart={(e) => {
                       e.dataTransfer.effectAllowed = "move";
                       e.dataTransfer.setData("cardIdx", idx.toString());
                       (e.currentTarget as HTMLElement).style.opacity = "0.4";
+                      (e.currentTarget as any)._isDragging = true;
                     }}
                     onDragEnd={(e) => {
                       (e.currentTarget as HTMLElement).style.opacity = "1";
+                      // Reset dragging state after a short delay
+                      setTimeout(() => {
+                        (e.currentTarget as any)._isDragging = false;
+                      }, 100);
                     }}
                     onDragOver={(e) => {
                       e.preventDefault();
@@ -229,7 +238,11 @@ export default function EditDraft() {
                       setSelectedCardIdx(idx);
                     }}
                     className={`glass-btn text-sm whitespace-nowrap cursor-move rounded-full px-4 ${selectedCardIdx === idx ? (isSpecial ? "bg-purple-100 border-purple-300 text-purple-700 font-medium" : "bg-blue-100 border-blue-300 text-blue-700 font-medium") : "glass-btn--secondary hover:bg-gray-100"}`}
-                    onClick={() => setSelectedCardIdx(idx)}
+                    onClick={(e) => {
+                      // Prevent click during drag
+                      if ((e.currentTarget as any)._isDragging) return;
+                      setSelectedCardIdx(idx);
+                    }}
                     onDoubleClick={() => setEditingNameIdx(idx)}
                   >
                     {displayName}
