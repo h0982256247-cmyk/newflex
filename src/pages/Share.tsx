@@ -5,6 +5,97 @@ import FlexPreview from "@/components/FlexPreview";
 import { resolveDocIdToToken, resolveShareToken } from "@/lib/db";
 import { isLineInApp } from "@/lib/lineEnv";
 
+// 檢查 bubble 是否包含 video hero
+function hasVideoHero(bubble: any): boolean {
+  return bubble?.hero?.type === "video";
+}
+
+// 從 bubble 中提取 video 資訊
+function extractVideoFromBubble(bubble: any): { videoUrl: string; previewUrl: string } | null {
+  if (!hasVideoHero(bubble)) return null;
+  const hero = bubble.hero;
+  return {
+    videoUrl: hero.url,
+    previewUrl: hero.previewUrl || hero.altContent?.url,
+  };
+}
+
+// 移除 bubble 中的 video hero，改用預覽圖作為 image hero
+function removeVideoHero(bubble: any): any {
+  if (!hasVideoHero(bubble)) return bubble;
+
+  const hero = bubble.hero;
+  const previewUrl = hero.previewUrl || hero.altContent?.url;
+
+  // 將 video hero 替換為 image hero（使用預覽圖）
+  return {
+    ...bubble,
+    hero: previewUrl ? {
+      type: "image",
+      url: previewUrl,
+      size: "full",
+      aspectRatio: hero.aspectRatio || "16:9",
+      aspectMode: "cover",
+    } : undefined,
+  };
+}
+
+// 建立分享用的訊息陣列
+// LINE LIFF shareTargetPicker 不支援在 Flex Message 中使用 video
+// 所以如果有影片，我們要拆成：1. Video Message 2. Flex Message (不含影片)
+function buildShareMessages(contents: any, altText: string): any[] {
+  if (!contents) return [];
+
+  // 單一 bubble
+  if (contents.type === "bubble") {
+    const videoInfo = extractVideoFromBubble(contents);
+
+    if (videoInfo) {
+      // 有影片：先送 video message，再送不含影片的 flex
+      const messages: any[] = [];
+
+      // 1. Video Message
+      messages.push({
+        type: "video",
+        originalContentUrl: videoInfo.videoUrl,
+        previewImageUrl: videoInfo.previewUrl,
+      });
+
+      // 2. Flex Message (不含 video hero)
+      const flexWithoutVideo = removeVideoHero(contents);
+      messages.push({
+        type: "flex",
+        altText,
+        contents: flexWithoutVideo,
+      });
+
+      return messages;
+    }
+
+    // 沒有影片：正常的 flex message
+    return [{
+      type: "flex",
+      altText,
+      contents,
+    }];
+  }
+
+  // Carousel - 不應該有 video（LINE 不支援），但為了安全還是處理一下
+  if (contents.type === "carousel") {
+    return [{
+      type: "flex",
+      altText,
+      contents,
+    }];
+  }
+
+  return [{
+    type: "flex",
+    altText,
+    contents,
+  }];
+}
+
 type FullUrlParams = { token: string | null; id: string | null; autoshare: boolean };
 
 function parseUrlParams(): FullUrlParams {
@@ -223,21 +314,25 @@ export default function Share() {
       // 送出前檢查 contents 結構
       validateBeforeShare(contents);
 
-      // 建立 payload
-      const payload = {
-        type: "flex" as const,
-        altText,
-        contents,
-      };
-      const messages = [payload];
+      // 建立訊息陣列（如果有影片會自動拆成 Video Message + Flex Message）
+      const messages = buildShareMessages(contents, altText);
+
+      if (messages.length === 0) {
+        throw new Error("無法建立分享訊息");
+      }
+
+      // 檢查訊息數量（shareTargetPicker 最多 5 則）
+      if (messages.length > 5) {
+        throw new Error(`訊息數量超過上限：${messages.length}（最多 5 則）`);
+      }
 
       console.log("===== SHARE PAYLOAD START =====");
       console.log("[Share] messages.length =", messages.length);
-      console.log("[Share] contents.type =", contents?.type);
+      console.log("[Share] message types =", messages.map(m => m.type).join(", "));
       if (contents?.type === "carousel") {
         console.log("[Share] carousel bubbles =", Array.isArray(contents?.contents) ? contents.contents.length : -1);
       }
-      console.log("[Share] payload JSON =", JSON.stringify(payload, null, 2));
+      console.log("[Share] payload JSON =", JSON.stringify(messages, null, 2));
       console.log("===== SHARE PAYLOAD END =====");
 
       // 呼叫 shareTargetPicker
