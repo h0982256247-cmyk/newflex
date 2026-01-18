@@ -144,6 +144,17 @@ export function validateDoc(doc: DocModel): ValidationReport {
   else if (doc.type === "carousel") {
     if (doc.cards.length < 1) errors.push(issue("error", "E_CAROUSEL_EMPTY", "Carousel 至少需要 1 張卡片", "cards"));
     if (doc.cards.length > 5) errors.push(issue("error", "E_CAROUSEL_TOO_MANY", "Carousel 最多只能 5 張卡片", "cards"));
+
+    // Check for video in carousel - NOT SUPPORTED by LINE
+    doc.cards.forEach((c, i) => {
+      if (c.section && "hero" in c.section) {
+        const heroVideo = (c.section.hero || []).find((h: any) => h.enabled !== false && h.kind === "hero_video");
+        if (heroVideo) {
+          errors.push(issue("error", "E_VIDEO_IN_CAROUSEL", "LINE 不支援在 Carousel 中使用影片，請改用獨立 Bubble", `cards[${i}].section.hero`));
+        }
+      }
+    });
+
     doc.cards.forEach((c, i) => checkSection(c.section, `cards[${i}].section`, true));
   }
 
