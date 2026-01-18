@@ -53,6 +53,14 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
         url: videoUrl,
         previewUrl: previewUrl,
         aspectRatio: heroVideo.ratio || "16:9",
+        // altContent is required for older LINE versions that don't support video
+        altContent: {
+          type: "image",
+          size: "full",
+          aspectRatio: heroVideo.ratio || "16:9",
+          aspectMode: "cover",
+          url: previewUrl,
+        },
       };
       if (heroVideo.action) {
         hero.action = actionToFlex(heroVideo.action, undefined, docId, token, liffId);

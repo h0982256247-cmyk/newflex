@@ -11,24 +11,43 @@ export default function FlexPreview({ doc, flex, selectedIndex, onIndexChange }:
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const lastIndexRef = React.useRef<number>(-1);
+  const isScrollingFromClick = React.useRef(false);
+  const scrollTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
+  // Scroll to selected card when selectedIndex changes (from clicking card tabs)
   React.useEffect(() => {
-    if (selectedIndex !== undefined && scrollRef.current) {
+    if (selectedIndex !== undefined && scrollRef.current && selectedIndex !== lastIndexRef.current) {
+      isScrollingFromClick.current = true;
       const cardWidth = 280 + 12; // width + gap
       const target = selectedIndex * cardWidth;
       scrollRef.current.scrollTo({ left: target, behavior: "smooth" });
       lastIndexRef.current = selectedIndex;
+
+      // Reset flag after scroll animation completes
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        isScrollingFromClick.current = false;
+      }, 350);
     }
   }, [selectedIndex]);
 
+  // Handle manual scroll - debounced to avoid conflicts
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (!onIndexChange) return;
+    if (!onIndexChange || isScrollingFromClick.current) return;
+
     const cardWidth = 280 + 12;
     const idx = Math.round(e.currentTarget.scrollLeft / cardWidth);
-    // Only call onIndexChange if index actually changed
-    if (idx !== lastIndexRef.current) {
+
+    if (idx !== lastIndexRef.current && idx >= 0) {
       lastIndexRef.current = idx;
       onIndexChange(idx);
+    }
+  };
+
+  // Handle click on preview card
+  const handleCardClick = (index: number) => {
+    if (onIndexChange && index !== lastIndexRef.current) {
+      onIndexChange(index);
     }
   };
 
@@ -47,10 +66,16 @@ export default function FlexPreview({ doc, flex, selectedIndex, onIndexChange }:
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex gap-3 overflow-x-auto pb-4 snap-x px-4 no-scrollbar"
+        className="flex gap-3 overflow-x-auto pb-4 snap-x px-4 no-scrollbar scroll-smooth"
       >
         {root.contents.map((bubble: any, i: number) => (
-          <div key={i} className="min-w-[280px] max-w-[280px] snap-center flex-shrink-0">
+          <div
+            key={i}
+            className={`min-w-[280px] max-w-[280px] snap-center flex-shrink-0 cursor-pointer transition-all duration-200 ${
+              selectedIndex === i ? "ring-2 ring-blue-400 ring-offset-2 rounded-[18px]" : "hover:opacity-90"
+            }`}
+            onClick={() => handleCardClick(i)}
+          >
             <FlexBubble bubble={bubble} />
           </div>
         ))}

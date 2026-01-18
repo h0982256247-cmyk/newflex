@@ -33,6 +33,7 @@ export default function EditDraft() {
   const [activeShare, setActiveShare] = useState<{ token: string; version_no: number } | null>(null);
   const [editingNameIdx, setEditingNameIdx] = useState<number | null>(null);
   const saveTimer = useRef<number | null>(null);
+  const cardTabsRef = useRef<HTMLDivElement>(null);
 
   // 分享連結使用 LIFF URL 格式（自動觸發分享）
   const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
@@ -54,6 +55,20 @@ export default function EditDraft() {
   useEffect(() => {
     setJsonCode(null);
   }, [doc]);
+
+  // Auto-scroll card tabs when selectedCardIdx changes
+  useEffect(() => {
+    if (cardTabsRef.current && doc?.type === "carousel") {
+      const container = cardTabsRef.current;
+      const selectedBtn = container.children[selectedCardIdx] as HTMLElement;
+      if (selectedBtn) {
+        const containerRect = container.getBoundingClientRect();
+        const btnRect = selectedBtn.getBoundingClientRect();
+        const scrollLeft = selectedBtn.offsetLeft - containerRect.width / 2 + btnRect.width / 2;
+        container.scrollTo({ left: Math.max(0, scrollLeft), behavior: "smooth" });
+      }
+    }
+  }, [selectedCardIdx, doc?.type]);
 
   const scheduleSave = (next: DocModel) => {
     setDoc(next);
@@ -175,7 +190,7 @@ export default function EditDraft() {
 
         {doc.type === "carousel" && (
           <div className="mt-4 flex flex-wrap gap-2 items-center">
-            <div className="flex gap-2 overflow-x-auto pb-2 flex-1 items-center">
+            <div ref={cardTabsRef} className="flex gap-2 overflow-x-auto pb-2 flex-1 items-center scroll-smooth no-scrollbar">
               {doc.cards.map((c, idx) => {
                 const isSpecial = (c.section as SpecialSection).kind === "special";
                 const sameTypeCount = doc.cards.slice(0, idx).filter(card =>
