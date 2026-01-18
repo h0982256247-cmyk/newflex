@@ -570,6 +570,284 @@ export default function EditDraft() {
                   </div>
                 </div>
               </AccordionSection>
+
+              <AccordionSection
+                title="內容設定"
+                open={open === "body"}
+                onToggle={() => setOpen(open === "body" ? "footer" : "body")}
+                right={<span className="glass-badge">{section.body.filter((c: any) => c.enabled).length} 個</span>}
+              >
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    <button className="glass-btn text-xs py-2" onClick={() => {
+                      const next = [...section.body, { id: uid("t_"), kind: "title", enabled: true, text: "新標題", size: "lg", weight: "bold", color: "#111111", align: "start" }];
+                      setSection({ ...section, body: next });
+                    }}>＋ 標題</button>
+                    <button className="glass-btn text-xs py-2" onClick={() => {
+                      const next = [...section.body, { id: uid("p_"), kind: "paragraph", enabled: true, text: "新段落…", size: "md", color: "#333333", wrap: true }];
+                      setSection({ ...section, body: next });
+                    }}>＋ 段落</button>
+                    <button className="glass-btn text-xs py-2" onClick={() => {
+                      const next = [...section.body, { id: uid("kv_"), kind: "key_value", enabled: true, label: "標籤", value: "內容", action: { type: "uri", uri: "https://example.com" } }];
+                      setSection({ ...section, body: next });
+                    }}>＋ 標籤數值</button>
+                    <button className="glass-btn text-xs py-2" onClick={() => {
+                      const next = [...section.body, { id: uid("l_"), kind: "list", enabled: true, items: [{ id: uid("i_"), text: "清單項目" }] }];
+                      setSection({ ...section, body: next });
+                    }}>＋ 列表</button>
+                    <button className="glass-btn text-xs py-2" onClick={() => {
+                      const next = [...section.body, { id: uid("d_"), kind: "divider", enabled: true }];
+                      setSection({ ...section, body: next });
+                    }}>＋ 分隔線</button>
+                    <button className="glass-btn text-xs py-2" onClick={() => {
+                      const next = [...section.body, { id: uid("s_"), kind: "spacer", enabled: true, size: "md" }];
+                      setSection({ ...section, body: next });
+                    }}>＋ 留白</button>
+                  </div>
+
+                  {section.body.map((c: any, idx: number) => (
+                    <div key={c.id} className="glass-panel p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="font-semibold text-sm">{idx + 1}. {c.kind}</div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            className="glass-btn glass-btn--secondary p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500"
+                            disabled={idx === 0}
+                            onClick={() => setSection({ ...section, body: moveItem(section.body, idx, idx - 1) })}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6" /></svg>
+                          </button>
+                          <button
+                            className="glass-btn glass-btn--secondary p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500"
+                            disabled={idx === section.body.length - 1}
+                            onClick={() => setSection({ ...section, body: moveItem(section.body, idx, idx + 1) })}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                          </button>
+                          <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                          <button className="glass-btn glass-btn--secondary px-3 py-1.5 text-xs text-red-600 hover:bg-red-50" onClick={() => {
+                            const next = [...section.body]; next.splice(idx, 1);
+                            setSection({ ...section, body: next });
+                          }}>刪除</button>
+                        </div>
+                      </div>
+
+                      {(c.kind === "title" || c.kind === "paragraph") ? (
+                        <div className="mt-3 space-y-3">
+                          <div>
+                            <div className="glass-label mb-2">文字內容</div>
+                            <textarea className="glass-input" rows={c.kind === "title" ? 2 : 3} value={c.text} onChange={(e) => {
+                              const next = [...section.body]; next[idx] = { ...c, text: e.target.value };
+                              setSection({ ...section, body: next });
+                            }} />
+                          </div>
+
+                          <details className="group">
+                            <summary className="cursor-pointer text-xs text-blue-600 font-medium py-1 select-none flex items-center gap-1">
+                              <svg className="w-4 h-4 transition-transform group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                              調整樣式 (顏色/大小/粗細)
+                            </summary>
+                            <div className="pt-2 pl-4 flex flex-wrap gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                              <div className="flex-1 min-w-[150px]">
+                                <ColorPicker
+                                  label="文字顏色"
+                                  value={c.color}
+                                  colors={["#111111", "#8E8E93", "#0A84FF", "#30D158", "#FF453A"]}
+                                  onChange={(v) => {
+                                    const next = [...section.body]; next[idx] = { ...c, color: v.toUpperCase() };
+                                    setSection({ ...section, body: next });
+                                  }}
+                                />
+                              </div>
+                              <div className="w-24">
+                                <div className="glass-label mb-1">大小</div>
+                                <select className="glass-input w-full py-1.5" value={c.size} onChange={(e) => {
+                                  const next = [...section.body]; next[idx] = { ...c, size: e.target.value };
+                                  setSection({ ...section, body: next });
+                                }}>
+                                  <option value="xs">XS</option><option value="sm">SM</option>
+                                  <option value="md">MD</option><option value="lg">LG</option>
+                                  <option value="xl">XL</option>
+                                </select>
+                              </div>
+                              <div className="w-24">
+                                <div className="glass-label mb-1">粗細</div>
+                                <select className="glass-input w-full py-1.5" value={c.weight || "regular"} onChange={(e) => {
+                                  const next = [...section.body]; next[idx] = { ...c, weight: e.target.value as any };
+                                  setSection({ ...section, body: next });
+                                }}>
+                                  <option value="regular">一般</option>
+                                  <option value="bold">粗體</option>
+                                </select>
+                              </div>
+                            </div>
+                          </details>
+                        </div>
+                      ) : null}
+
+                      {c.kind === "key_value" ? (
+                        <div className="mt-3 space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div><div className="glass-label mb-2">標籤名稱 (Label)</div><input className="glass-input" value={c.label} onChange={(e) => {
+                              const next = [...section.body]; next[idx] = { ...c, label: e.target.value }; setSection({ ...section, body: next });
+                            }} /></div>
+                            <div><div className="glass-label mb-2">顯示數值 (Value)</div><input className="glass-input" value={c.value} onChange={(e) => {
+                              const next = [...section.body]; next[idx] = { ...c, value: e.target.value }; setSection({ ...section, body: next });
+                            }} /></div>
+                          </div>
+                          <div><div className="glass-label mb-2">連結網址 (URL)</div><input className="glass-input" value={c.action?.uri || ""} onChange={(e) => {
+                            const next = [...section.body]; next[idx] = { ...c, action: { type: "uri", uri: e.target.value } }; setSection({ ...section, body: next });
+                          }} /></div>
+                        </div>
+                      ) : null}
+
+                      {c.kind === "list" ? (
+                        <div className="mt-3 space-y-2">
+                          {c.items.map((it: any, j: number) => (
+                            <input key={it.id} className="glass-input" value={it.text} onChange={(e) => {
+                              const next = [...section.body];
+                              const items = [...c.items]; items[j] = { ...it, text: e.target.value };
+                              next[idx] = { ...c, items }; setSection({ ...section, body: next });
+                            }} />
+                          ))}
+                          <button className="glass-btn glass-btn--secondary w-full" onClick={() => {
+                            const next = [...section.body]; next[idx] = { ...c, items: [...c.items, { id: uid("i_"), text: "新項目" }] };
+                            setSection({ ...section, body: next });
+                          }}>+ 新增項目</button>
+                        </div>
+                      ) : null}
+
+                      {c.kind === "spacer" ? (
+                        <div className="mt-3">
+                          <div className="glass-label mb-2">留白大小</div>
+                          <select className="glass-input" value={c.size} onChange={(e) => {
+                            const next = [...section.body]; next[idx] = { ...c, size: e.target.value }; setSection({ ...section, body: next });
+                          }}>
+                            <option value="sm">sm</option><option value="md">md</option><option value="lg">lg</option>
+                          </select>
+                        </div>
+                      ) : null}
+
+                      {c.kind === "divider" ? <div className="mt-3 text-xs opacity-70">（分隔線無需設定）</div> : null}
+                    </div>
+                  ))}
+                </div>
+              </AccordionSection>
+
+              <AccordionSection
+                title="底部按鈕"
+                subtitle="最多 3 顆；直向滿版"
+                open={open === "footer"}
+                onToggle={() => setOpen(open === "footer" ? "hero" : "footer")}
+                right={<span className="glass-badge">{(section as any).footer?.length || 0}/3</span>}
+              >
+                <div className="space-y-3">
+                  <button className="glass-btn w-full" disabled={((section as any).footer?.length || 0) >= 3} onClick={() => {
+                    const bg = "#0A84FF";
+                    const btn: FooterButton = { id: uid("btn_"), kind: "footer_button", enabled: true, label: "新按鈕", action: { type: "uri", uri: "https://example.com" }, style: "primary", bgColor: bg, textColor: autoTextColor(bg), autoTextColor: true };
+                    setSection({ ...section, footer: [...((section as any).footer || []), btn].slice(0, 3) });
+                  }}>+ 新增按鈕</button>
+
+                  {((section as any).footer || []).map((b: any, idx: number) => (
+                    <div key={b.id} className="glass-panel p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="font-semibold text-sm">按鈕 {idx + 1}</div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            className="glass-btn glass-btn--secondary p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500"
+                            disabled={idx === 0}
+                            onClick={() => setSection({ ...section, footer: moveItem((section as any).footer, idx, idx - 1) })}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6" /></svg>
+                          </button>
+                          <button
+                            className="glass-btn glass-btn--secondary p-1.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:hover:text-gray-500"
+                            disabled={idx === (section as any).footer.length - 1}
+                            onClick={() => setSection({ ...section, footer: moveItem((section as any).footer, idx, idx + 1) })}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                          </button>
+                          <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                          <button className="glass-btn glass-btn--secondary px-3 py-1.5 text-xs text-red-600 hover:bg-red-50" onClick={() => {
+                            const next = (section as any).footer.filter((_: any, i: number) => i !== idx);
+                            setSection({ ...section, footer: next });
+                          }}>刪除</button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div>
+                          <div className="flex gap-4 mb-2">
+                            <div className="flex-1">
+                              <div className="glass-label mb-1">按鈕文字</div>
+                              <input className="glass-input w-full" value={b.label} onChange={(e) => {
+                                const next = [...(section as any).footer]; next[idx] = { ...b, label: e.target.value }; setSection({ ...section, footer: next });
+                              }} />
+                            </div>
+                            <div className="w-1/3">
+                              <div className="glass-label mb-1">動作類型</div>
+                              <select className="glass-input w-full py-1.5" value={b.action.type} onChange={(e) => {
+                                const type = e.target.value as any;
+                                const next = [...(section as any).footer];
+                                if (type === "uri") next[idx] = { ...b, action: { type, uri: "" } };
+                                else if (type === "message") next[idx] = { ...b, action: { type, text: "" } };
+                                else if (type === "share") next[idx] = { ...b, action: { type, uri: "" } };
+                                setSection({ ...section, footer: next });
+                              }}>
+                                <option value="uri">開啟網址</option>
+                                <option value="message">傳送文字</option>
+                                <option value="share">分享好友</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="glass-label mb-2">
+                              {b.action.type === "uri" ? "URL連結" : b.action.type === "message" ? "訊息文字" : "分享連結（自動填入）"}
+                            </div>
+                            <input
+                              className={`glass-input w-full ${b.action.type === "share" ? "bg-gray-100 opacity-60 cursor-not-allowed" : ""}`}
+                              disabled={b.action.type === "share"}
+                              value={b.action.type === "uri" ? b.action.uri : b.action.type === "message" ? b.action.text : (shareUrl || "尚未發布，請先至預覽頁發布")}
+                              onChange={(e) => {
+                                if (b.action.type === "share") return;
+                                const next = [...(section as any).footer];
+                                if (b.action.type === "uri") next[idx] = { ...b, action: { ...b.action, uri: e.target.value } };
+                                else if (b.action.type === "message") next[idx] = { ...b, action: { ...b.action, text: e.target.value } };
+                                setSection({ ...section, footer: next });
+                              }}
+                            />
+                            {b.action.type === "uri" ? <div className="mt-1 text-xs opacity-70">僅支援 https://、line://、liff://</div> : null}
+                            {b.action.type === "share" && !shareUrl ? <div className="mt-1 text-xs text-amber-600">請先至「預覽與發布」頁面發布後，連結會自動顯示</div> : null}
+                            {b.action.type === "share" && shareUrl ? <div className="mt-1 text-xs text-green-600">已發布 v{activeShare?.version_no}</div> : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      <details className="glass-panel p-3">
+                        <summary className="cursor-pointer font-semibold text-sm">顏色設定</summary>
+                        <div className="mt-3 space-y-4">
+                          <ColorPicker label="背景色" value={b.bgColor} onChange={(v) => {
+                            const next = [...(section as any).footer];
+                            next[idx] = { ...b, bgColor: v.toUpperCase(), textColor: b.autoTextColor ? autoTextColor(v) : b.textColor };
+                            setSection({ ...section, footer: next });
+                          }} />
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-xs opacity-70">文字色：{b.textColor}</div>
+                            <button className="glass-btn glass-btn--secondary px-3 py-2 text-xs" onClick={() => {
+                              const next = [...(section as any).footer]; next[idx] = { ...b, textColor: autoTextColor(b.bgColor), autoTextColor: true }; setSection({ ...section, footer: next });
+                            }}>自動</button>
+                          </div>
+                          <ColorPicker label="文字色（手動）" value={b.textColor} onChange={(v) => {
+                            const next = [...(section as any).footer]; next[idx] = { ...b, textColor: v.toUpperCase(), autoTextColor: false }; setSection({ ...section, footer: next });
+                          }} />
+                          <AutoTextColorHint bgColor={b.bgColor} textColor={b.textColor} />
+                        </div>
+                      </details>
+                    </div>
+                  ))}
+                </div>
+              </AccordionSection>
             </>
           ) : (
             /* Regular Card Editor */
