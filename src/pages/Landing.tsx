@@ -12,10 +12,7 @@ export default function Landing() {
 
       <div className="max-w-3xl w-full z-10 relative">
         <div className="glass-panel p-20 flex flex-col items-center text-center shadow-2xl backdrop-blur-xl border border-white/40">
-          <div className="text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-rose-500 mb-6 is-pink-title">
-            柔兒數位
-          </div>
-          <div className="text-2xl font-medium text-gray-700 mb-12 tracking-wide">
+          <div className="text-4xl font-bold text-gray-800 mb-12 tracking-wide">
             Flex Message Editor
           </div>
 
