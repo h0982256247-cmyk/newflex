@@ -100,12 +100,14 @@ function FlexBubble({ bubble }: { bubble: any }) {
   if (bubble.hero) {
     const hero = bubble.hero;
     if (hero.type === "image") {
+      // 將 LINE 的 aspectRatio 格式 (20:13) 轉換為 CSS 格式 (20/13)
+      const cssAspectRatio = (hero.aspectRatio || "20:13").replace(":", "/");
       heroEl = (
         <div
           className="w-full bg-gray-100 overflow-hidden"
           style={{
-            aspectRatio: hero.aspectRatio || "20:13",
-            maxHeight: "300px"
+            aspectRatio: cssAspectRatio,
+            maxHeight: "400px"
           }}
         >
           <img
@@ -120,12 +122,13 @@ function FlexBubble({ bubble }: { bubble: any }) {
       );
     } else if (hero.type === "video") {
       // 影片預覽：顯示預覽圖（點擊後可播放影片）
+      const cssAspectRatio = (hero.aspectRatio || "16:9").replace(":", "/");
       heroEl = (
         <div
           className="w-full bg-gray-100 overflow-hidden relative group cursor-pointer"
           style={{
-            aspectRatio: hero.aspectRatio || "16:9",
-            maxHeight: "300px"
+            aspectRatio: cssAspectRatio,
+            maxHeight: "400px"
           }}
         >
           <img
