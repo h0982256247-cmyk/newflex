@@ -898,7 +898,11 @@ export default function EditDraft() {
                     <div className="glass-label mb-2">圖片比例</div>
                     <select
                       className="glass-input"
-                      value={(section as any).hero?.[0]?.ratio || "1.91:1"}
+                      value={(() => {
+                        const heroArr = (section as any).hero || [];
+                        const heroImage = heroArr.find((c: any) => c.kind === "hero_image");
+                        return heroImage?.ratio || "20:13";
+                      })()}
                       onChange={(e) => {
                         const ratio = e.target.value as any;
                         const heroArr = (section as any).hero || [];

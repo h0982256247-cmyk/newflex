@@ -73,8 +73,8 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
         type: "image",
         url: heroUrl,
         size: "full",
-        aspectRatio: heroImg.ratio,
-        aspectMode: heroImg.mode,
+        aspectRatio: heroImg.ratio || "20:13",
+        aspectMode: heroImg.mode || "cover",
       };
     }
   }
