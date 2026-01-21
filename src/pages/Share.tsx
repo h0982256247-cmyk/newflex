@@ -3,7 +3,6 @@ import liff from "@line/liff";
 
 import FlexPreview from "@/components/FlexPreview";
 import { resolveDocIdToToken, resolveShareToken } from "@/lib/db";
-import { isLineInApp } from "@/lib/lineEnv";
 
 // 檢查 bubble 是否包含 video hero
 function hasVideoHero(bubble: any): boolean {
@@ -357,18 +356,13 @@ async function onPrimaryClick() {
 }
 
 return (
-  <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+  <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 relative">
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6">
-          <div className="text-xl font-semibold text-gray-900">分享 Flex Message</div>
-          <div className="mt-2 text-sm text-gray-500">
-            這頁面的預覽即為實際分享給好友的內容（published 版本）。
-          </div>
-
           {toast ? (
             <div
-              className={`mt-4 rounded-xl p-3 text-sm whitespace-pre-wrap ${toast.type === "ok"
+              className={`mb-4 rounded-xl p-3 text-sm whitespace-pre-wrap ${toast.type === "ok"
                 ? "bg-green-50 text-green-700 border border-green-100"
                 : "bg-red-50 text-red-700 border border-red-100"
                 }`}
@@ -377,35 +371,25 @@ return (
             </div>
           ) : null}
 
-          <div className="mt-6 flex gap-3">
-            <button className="glass-btn flex-1" disabled={loading || sharing} onClick={onPrimaryClick}>
-              {sharing ? "處理中…" : "分享給好友"}
-            </button>
-
+          <div className="flex justify-center">
             <button
-              className="glass-btn glass-btn--secondary"
-              onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="px-10 py-3 bg-[#06C755] hover:bg-[#05b04c] text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading || sharing}
+              onClick={onPrimaryClick}
             >
-              看預覽
+              {sharing ? "處理中…" : "分享好友"}
             </button>
           </div>
-
-          {!isLineInApp() && liffReady && !liff.isLoggedIn() ? (
-            <div className="mt-3 text-xs text-gray-500">
-              提示：電腦版需先登入 LINE 帳號才能使用分享功能。點擊按鈕將導向登入頁面。
-            </div>
-          ) : null}
         </div>
 
         <div ref={previewRef} className="border-t border-gray-100 bg-gray-50 p-6">
-          <div className="font-semibold text-gray-900">預覽</div>
           <div className="mt-4">
             {loading ? (
-              <div className="text-sm text-gray-500">載入中…</div>
+              <div className="text-sm text-gray-500 text-center">載入中…</div>
             ) : contents ? (
               <FlexPreview doc={docModel} flex={flexJson} />
             ) : (
-              <div className="text-sm text-gray-500">沒有可預覽的內容</div>
+              <div className="text-sm text-gray-500 text-center">沒有可預覽的內容</div>
             )}
           </div>
         </div>
@@ -415,6 +399,17 @@ return (
         分享連結：<span className="select-all">{shareUrl}</span>
       </div>
     </div>
+
+    {/* 浮動下滑按鈕 */}
+    <button
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:shadow-xl hover:scale-110 transition-all duration-200 animate-bounce"
+      onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+      aria-label="查看預覽"
+    >
+      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+      </svg>
+    </button>
   </div>
 );
 }

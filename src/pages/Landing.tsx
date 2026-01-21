@@ -13,7 +13,7 @@ export default function Landing() {
       <div className="max-w-3xl w-full z-10 relative">
         <div className="glass-panel p-20 flex flex-col items-center text-center shadow-2xl backdrop-blur-xl border border-white/40">
           <div className="text-4xl font-bold text-gray-800 mb-12 tracking-wide">
-            Flex Message Editor
+            LINE MGM 好友裂變行銷系統
           </div>
 
           <div className="flex justify-center w-full">
@@ -27,7 +27,7 @@ export default function Landing() {
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500 opacity-60">
-          © 2024 Gentler Digit. All rights reserved.
+          © 2024 <a href="https://www.gentlerdigit.com/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700 hover:underline transition-colors">柔兒數位 Gentler Digit</a>. All rights reserved.
         </div>
       </div>
     </div>
