@@ -356,60 +356,63 @@ async function onPrimaryClick() {
 }
 
 return (
-  <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 relative">
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6">
-          {toast ? (
-            <div
-              className={`mb-4 rounded-xl p-3 text-sm whitespace-pre-wrap ${toast.type === "ok"
-                ? "bg-green-50 text-green-700 border border-green-100"
-                : "bg-red-50 text-red-700 border border-red-100"
-                }`}
-            >
-              {toast.msg}
-            </div>
-          ) : null}
-
-          <div className="flex justify-center">
-            <button
-              className="px-10 py-3 bg-[#06C755] hover:bg-[#05b04c] text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={loading || sharing}
-              onClick={onPrimaryClick}
-            >
-              {sharing ? "處理中…" : "分享好友"}
-            </button>
-          </div>
+  <div className="bg-pink-50">
+    {/* 第一區：分享按鈕 + 預覽箭頭 */}
+    <div className="h-screen flex flex-col items-center justify-center px-4 relative">
+      {/* Toast 訊息 */}
+      {toast ? (
+        <div
+          className={`mb-6 rounded-2xl px-6 py-3 text-sm shadow-sm ${toast.type === "ok"
+            ? "bg-green-50 text-green-700 border border-green-100"
+            : "bg-red-50 text-red-700 border border-red-100"
+            }`}
+        >
+          {toast.msg}
         </div>
+      ) : null}
 
-        <div ref={previewRef} className="border-t border-gray-100 bg-gray-50 p-6">
-          <div className="mt-4">
-            {loading ? (
-              <div className="text-sm text-gray-500 text-center">載入中…</div>
-            ) : contents ? (
-              <FlexPreview doc={docModel} flex={flexJson} />
-            ) : (
-              <div className="text-sm text-gray-500 text-center">沒有可預覽的內容</div>
-            )}
-          </div>
+      {/* 分享按鈕 */}
+      <button
+        className="px-12 py-4 bg-[#06C755] hover:bg-[#05b04c] text-white text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+        disabled={loading || sharing}
+        onClick={onPrimaryClick}
+      >
+        {sharing ? "處理中…" : "分享好友"}
+      </button>
+
+      {/* 預覽箭頭 - 固定在畫面下方 */}
+      <button
+        className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 group"
+        onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+      >
+        <span className="text-sm text-gray-400">預覽</span>
+        <div className="w-12 h-12 bg-white/90 rounded-full shadow-md border border-pink-100 flex items-center justify-center group-hover:shadow-lg group-hover:scale-110 transition-all">
+          <svg className="w-5 h-5 text-pink-400 animate-bounce" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 16l-6-6h4V4h4v6h4l-6 6z"/>
+            <path d="M4 18h16v2H4v-2z"/>
+          </svg>
         </div>
-      </div>
-
-      <div className="mt-6 text-center text-xs text-gray-400">
-        分享連結：<span className="select-all">{shareUrl}</span>
-      </div>
+      </button>
     </div>
 
-    {/* 浮動下滑按鈕 */}
-    <button
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:shadow-xl hover:scale-110 transition-all duration-200 animate-bounce"
-      onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-      aria-label="查看預覽"
-    >
-      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-      </svg>
-    </button>
+    {/* 第二區：預覽內容 */}
+    <div ref={previewRef} className="min-h-screen px-4 py-12">
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-white/80 rounded-2xl shadow-lg border border-gray-100 p-6">
+          {loading ? (
+            <div className="text-sm text-gray-500 text-center py-12">載入中…</div>
+          ) : contents ? (
+            <FlexPreview doc={docModel} flex={flexJson} />
+          ) : (
+            <div className="text-sm text-gray-500 text-center py-12">沒有可預覽的內容</div>
+          )}
+        </div>
+
+        <div className="mt-6 text-center text-xs text-gray-400">
+          分享連結：<span className="select-all">{shareUrl}</span>
+        </div>
+      </div>
+    </div>
   </div>
 );
 }
