@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 import ProgressBar from "@/components/ProgressBar";
 import FlexPreview from "@/components/FlexPreview";
 import { getDoc, getActiveShareForDoc, publishDoc } from "@/lib/db";
@@ -103,6 +104,14 @@ export default function PreviewDraft() {
                       </a>
                     )}
                     {!shareUrl && <div className="text-[10px] text-red-500">⚠️ 未生成 Web 連結。</div>}
+
+                    {/* QR Code */}
+                    <div className="mt-4 flex flex-col items-center gap-2">
+                      <div className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+                        <QRCodeSVG value={liffUrl || shareUrl || ""} size={160} />
+                      </div>
+                      <div className="text-xs text-gray-500">請用手機掃描分享</div>
+                    </div>
                   </div>
                 ) : null}
               </div>
