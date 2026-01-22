@@ -28,7 +28,7 @@ export default function PreviewDraft() {
 
   const rep = validateDoc(doc);
   const gate = isPublishable(doc);
-  const shareUrl = active ? `${window.location.origin}/share?token=${active.token}` : null;
+  const shareUrl = active ? `https://linemgm.com/share?token=${active.token}` : null;
   const liffId = import.meta.env.VITE_LIFF_ID as string | undefined;
   const liffUrl = active && liffId ? `https://liff.line.me/${liffId}?token=${active.token}` : null;
 

@@ -12,13 +12,13 @@ function buildShareUrl(token?: string, docId?: string, liffId?: string) {
   }
   // 有 token 時使用正式分享連結格式
   if (token) {
-    return `https://newcard.zeabur.app/share?token=${token}`;
+    return `https://linemgm.com/share?token=${token}`;
   }
   // 預覽模式：使用 docId
   if (docId) {
-    return `https://newcard.zeabur.app/share?id=${docId}`;
+    return `https://linemgm.com/share?id=${docId}`;
   }
-  return "https://newcard.zeabur.app/share";
+  return "https://linemgm.com/share";
 }
 
 function actionToFlex(a: Action, label?: string, docId?: string, token?: string, liffId?: string) {

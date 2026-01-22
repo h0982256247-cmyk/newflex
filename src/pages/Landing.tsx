@@ -27,7 +27,7 @@ export default function Landing() {
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500 opacity-60">
-          © 2024 <a href="https://www.gentlerdigit.com/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700 hover:underline transition-colors">柔兒數位 Gentler Digit</a>. All rights reserved.
+          © <a href="https://www.gentlerdigit.com/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-700 hover:underline transition-colors">柔兒數位 Gentler Digit</a>. All rights reserved.
         </div>
       </div>
     </div>
