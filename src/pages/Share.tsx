@@ -4,90 +4,13 @@ import liff from "@line/liff";
 import FlexPreview from "@/components/FlexPreview";
 import { resolveDocIdToToken, resolveShareToken } from "@/lib/db";
 
-// 檢查 bubble 是否包含 video hero
-function hasVideoHero(bubble: any): boolean {
-  return bubble?.hero?.type === "video";
-}
-
-// 從 bubble 中提取 video 資訊
-function extractVideoFromBubble(bubble: any): { videoUrl: string; previewUrl: string } | null {
-  if (!hasVideoHero(bubble)) return null;
-  const hero = bubble.hero;
-  return {
-    videoUrl: hero.url,
-    previewUrl: hero.previewUrl || hero.altContent?.url,
-  };
-}
-
-// 移除 bubble 中的 video hero，改用預覽圖作為 image hero
-function removeVideoHero(bubble: any): any {
-  if (!hasVideoHero(bubble)) return bubble;
-
-  const hero = bubble.hero;
-  const previewUrl = hero.previewUrl || hero.altContent?.url;
-
-  // 將 video hero 替換為 image hero（使用預覽圖）
-  return {
-    ...bubble,
-    hero: previewUrl ? {
-      type: "image",
-      url: previewUrl,
-      size: "full",
-      aspectRatio: hero.aspectRatio || "16:9",
-      aspectMode: "cover",
-    } : undefined,
-  };
-}
-
 // 建立分享用的訊息陣列
-// LINE LIFF shareTargetPicker 不支援在 Flex Message 中使用 video
-// 所以如果有影片，我們要拆成：1. Video Message 2. Flex Message (不含影片)
+// LIFF shareTargetPicker 支援 Flex Message 中的 video component
+// 影片和文字、按鈕會在同一個 bubble 訊息內
 function buildShareMessages(contents: any, altText: string): any[] {
   if (!contents) return [];
 
-  // 單一 bubble
-  if (contents.type === "bubble") {
-    const videoInfo = extractVideoFromBubble(contents);
-
-    if (videoInfo) {
-      // 有影片：先送 video message，再送不含影片的 flex
-      const messages: any[] = [];
-
-      // 1. Video Message
-      messages.push({
-        type: "video",
-        originalContentUrl: videoInfo.videoUrl,
-        previewImageUrl: videoInfo.previewUrl,
-      });
-
-      // 2. Flex Message (不含 video hero)
-      const flexWithoutVideo = removeVideoHero(contents);
-      messages.push({
-        type: "flex",
-        altText,
-        contents: flexWithoutVideo,
-      });
-
-      return messages;
-    }
-
-    // 沒有影片：正常的 flex message
-    return [{
-      type: "flex",
-      altText,
-      contents,
-    }];
-  }
-
-  // Carousel - 不應該有 video（LINE 不支援），但為了安全還是處理一下
-  if (contents.type === "carousel") {
-    return [{
-      type: "flex",
-      altText,
-      contents,
-    }];
-  }
-
+  // 直接使用 Flex Message（包含影片）
   return [{
     type: "flex",
     altText,
@@ -351,68 +274,68 @@ export default function Share() {
     }
   }
 
-async function onPrimaryClick() {
-  await triggerShare();
-}
+  async function onPrimaryClick() {
+    await triggerShare();
+  }
 
-return (
-  <div className="bg-pink-50">
-    {/* 第一區：分享按鈕 + 預覽箭頭 */}
-    <div className="h-screen flex flex-col items-center justify-center px-4 relative">
-      {/* Toast 訊息 */}
-      {toast ? (
-        <div
-          className={`mb-6 rounded-2xl px-6 py-3 text-sm shadow-sm ${toast.type === "ok"
-            ? "bg-green-50 text-green-700 border border-green-100"
-            : "bg-red-50 text-red-700 border border-red-100"
-            }`}
+  return (
+    <div className="bg-pink-50">
+      {/* 第一區：分享按鈕 + 預覽箭頭 */}
+      <div className="h-screen flex flex-col items-center justify-center px-4 relative">
+        {/* Toast 訊息 */}
+        {toast ? (
+          <div
+            className={`mb-6 rounded-2xl px-6 py-3 text-sm shadow-sm ${toast.type === "ok"
+              ? "bg-green-50 text-green-700 border border-green-100"
+              : "bg-red-50 text-red-700 border border-red-100"
+              }`}
+          >
+            {toast.msg}
+          </div>
+        ) : null}
+
+        {/* 分享按鈕 */}
+        <button
+          className="px-12 py-4 bg-[#06C755] hover:bg-[#05b04c] text-white text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+          disabled={loading || sharing}
+          onClick={onPrimaryClick}
         >
-          {toast.msg}
-        </div>
-      ) : null}
+          {sharing ? "處理中…" : "分享好友"}
+        </button>
 
-      {/* 分享按鈕 */}
-      <button
-        className="px-12 py-4 bg-[#06C755] hover:bg-[#05b04c] text-white text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-        disabled={loading || sharing}
-        onClick={onPrimaryClick}
-      >
-        {sharing ? "處理中…" : "分享好友"}
-      </button>
+        {/* 預覽箭頭 - 固定在畫面下方 */}
+        <button
+          className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 group"
+          onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        >
+          <span className="text-sm text-gray-400">預覽</span>
+          <div className="w-12 h-12 bg-white/90 rounded-full shadow-md border border-pink-100 flex items-center justify-center group-hover:shadow-lg group-hover:scale-110 transition-all">
+            <svg className="w-5 h-5 text-pink-400 animate-bounce" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 16l-6-6h4V4h4v6h4l-6 6z" />
+              <path d="M4 18h16v2H4v-2z" />
+            </svg>
+          </div>
+        </button>
+      </div>
 
-      {/* 預覽箭頭 - 固定在畫面下方 */}
-      <button
-        className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 group"
-        onClick={() => previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-      >
-        <span className="text-sm text-gray-400">預覽</span>
-        <div className="w-12 h-12 bg-white/90 rounded-full shadow-md border border-pink-100 flex items-center justify-center group-hover:shadow-lg group-hover:scale-110 transition-all">
-          <svg className="w-5 h-5 text-pink-400 animate-bounce" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 16l-6-6h4V4h4v6h4l-6 6z"/>
-            <path d="M4 18h16v2H4v-2z"/>
-          </svg>
-        </div>
-      </button>
-    </div>
+      {/* 第二區：預覽內容 */}
+      <div ref={previewRef} className="min-h-screen px-4 py-12">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white/80 rounded-2xl shadow-lg border border-gray-100 p-6">
+            {loading ? (
+              <div className="text-sm text-gray-500 text-center py-12">載入中…</div>
+            ) : contents ? (
+              <FlexPreview doc={docModel} flex={flexJson} />
+            ) : (
+              <div className="text-sm text-gray-500 text-center py-12">沒有可預覽的內容</div>
+            )}
+          </div>
 
-    {/* 第二區：預覽內容 */}
-    <div ref={previewRef} className="min-h-screen px-4 py-12">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white/80 rounded-2xl shadow-lg border border-gray-100 p-6">
-          {loading ? (
-            <div className="text-sm text-gray-500 text-center py-12">載入中…</div>
-          ) : contents ? (
-            <FlexPreview doc={docModel} flex={flexJson} />
-          ) : (
-            <div className="text-sm text-gray-500 text-center py-12">沒有可預覽的內容</div>
-          )}
-        </div>
-
-        <div className="mt-6 text-center text-xs text-gray-400">
-          分享連結：<span className="select-all">{shareUrl}</span>
+          <div className="mt-6 text-center text-xs text-gray-400">
+            分享連結：<span className="select-all">{shareUrl}</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
 }
