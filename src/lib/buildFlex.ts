@@ -48,12 +48,14 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
     const videoUrl = safeHttpsUrl(heroVideo?.video?.url);
     const previewUrl = safeHttpsUrl(heroVideo?.video?.previewUrl);
     if (videoUrl && previewUrl) {
+      // LINE Video Flex Message 官方格式
+      // 影片放在 hero 區塊，跟 body/footer 會在同一個 bubble
       hero = {
         type: "video",
         url: videoUrl,
         previewUrl: previewUrl,
         aspectRatio: heroVideo.ratio || "16:9",
-        // altContent is required for older LINE versions that don't support video
+        // altContent 是必要的，給不支援影片的舊版 LINE 顯示
         altContent: {
           type: "image",
           size: "full",
@@ -62,6 +64,7 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
           url: previewUrl,
         },
       };
+      // 如果有設定 action，加上去（會顯示在影片播放後）
       if (heroVideo.action) {
         hero.action = actionToFlex(heroVideo.action, undefined, docId, token, liffId);
       }
