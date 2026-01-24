@@ -48,27 +48,64 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
     const videoUrl = safeHttpsUrl(heroVideo?.video?.url);
     const previewUrl = safeHttpsUrl(heroVideo?.video?.previewUrl);
     if (previewUrl) {
-      // 使用圖片 hero + action 開啟影片連結
+      // 使用 box 結構，疊加播放按鈕在圖片上
       // 這樣可以確保 body/footer 正常顯示在同一個 bubble
-      // 使用者點擊預覽圖後會開啟影片連結播放
+      const action = videoUrl
+        ? { type: "uri", label: "播放影片", uri: videoUrl }
+        : heroVideo.action
+          ? actionToFlex(heroVideo.action, undefined, docId, token, liffId)
+          : undefined;
+
       hero = {
-        type: "image",
-        url: previewUrl,
-        size: "full",
-        aspectRatio: heroVideo.ratio || "16:9",
-        aspectMode: "cover",
+        type: "box",
+        layout: "vertical",
+        contents: [
+          // 背景圖片
+          {
+            type: "image",
+            url: previewUrl,
+            size: "full",
+            aspectRatio: heroVideo.ratio || "16:9",
+            aspectMode: "cover",
+          },
+          // 播放按鈕（置中疊加）
+          {
+            type: "box",
+            layout: "vertical",
+            contents: [
+              {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                  {
+                    type: "text",
+                    text: "▶",
+                    size: "3xl",
+                    color: "#FFFFFF",
+                    align: "center",
+                    gravity: "center",
+                  },
+                ],
+                width: "60px",
+                height: "60px",
+                backgroundColor: "#00000080",
+                cornerRadius: "30px",
+                justifyContent: "center",
+                alignItems: "center",
+              },
+            ],
+            position: "absolute",
+            offsetTop: "0px",
+            offsetBottom: "0px",
+            offsetStart: "0px",
+            offsetEnd: "0px",
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ],
+        paddingAll: "0px",
+        action,
       };
-      // 如果有影片 URL，點擊預覽圖就開啟影片連結
-      if (videoUrl) {
-        hero.action = {
-          type: "uri",
-          label: "播放影片",
-          uri: videoUrl,
-        };
-      } else if (heroVideo.action) {
-        // 如果沒有影片 URL 但有其他 action
-        hero.action = actionToFlex(heroVideo.action, undefined, docId, token, liffId);
-      }
     }
   } else if (heroImg) {
     const heroUrl = safeHttpsUrl(heroImg?.image?.url);
