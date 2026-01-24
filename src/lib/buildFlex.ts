@@ -47,25 +47,26 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
   if (heroVideo) {
     const videoUrl = safeHttpsUrl(heroVideo?.video?.url);
     const previewUrl = safeHttpsUrl(heroVideo?.video?.previewUrl);
-    if (videoUrl && previewUrl) {
-      // LINE Video Flex Message 官方格式
-      // 影片放在 hero 區塊，跟 body/footer 會在同一個 bubble
+    if (previewUrl) {
+      // 使用圖片 hero + action 開啟影片連結
+      // 這樣可以確保 body/footer 正常顯示在同一個 bubble
+      // 使用者點擊預覽圖後會開啟影片連結播放
       hero = {
-        type: "video",
-        url: videoUrl,
-        previewUrl: previewUrl,
+        type: "image",
+        url: previewUrl,
+        size: "full",
         aspectRatio: heroVideo.ratio || "16:9",
-        // altContent 是必要的，給不支援影片的舊版 LINE 顯示
-        altContent: {
-          type: "image",
-          size: "full",
-          aspectRatio: heroVideo.ratio || "16:9",
-          aspectMode: "cover",
-          url: previewUrl,
-        },
+        aspectMode: "cover",
       };
-      // 如果有設定 action，加上去（會顯示在影片播放後）
-      if (heroVideo.action) {
+      // 如果有影片 URL，點擊預覽圖就開啟影片連結
+      if (videoUrl) {
+        hero.action = {
+          type: "uri",
+          label: "播放影片",
+          uri: videoUrl,
+        };
+      } else if (heroVideo.action) {
+        // 如果沒有影片 URL 但有其他 action
         hero.action = actionToFlex(heroVideo.action, undefined, docId, token, liffId);
       }
     }
