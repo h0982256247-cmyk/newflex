@@ -49,11 +49,19 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
     const previewUrl = safeHttpsUrl(heroVideo?.video?.previewUrl);
     if (videoUrl && previewUrl) {
       // 使用 LINE 官方 video component 格式
+      // altContent 是必要的，給不支援 video 的舊版 LINE 顯示備用圖片
       hero = {
         type: "video",
         url: videoUrl,
         previewUrl: previewUrl,
         aspectRatio: heroVideo.ratio || "16:9",
+        altContent: {
+          type: "image",
+          size: "full",
+          aspectRatio: heroVideo.ratio || "16:9",
+          aspectMode: "cover",
+          url: previewUrl,
+        },
       };
     }
   } else if (heroImg) {
