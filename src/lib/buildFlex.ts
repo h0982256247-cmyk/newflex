@@ -47,64 +47,13 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
   if (heroVideo) {
     const videoUrl = safeHttpsUrl(heroVideo?.video?.url);
     const previewUrl = safeHttpsUrl(heroVideo?.video?.previewUrl);
-    if (previewUrl) {
-      // 使用 box 結構，疊加播放按鈕在圖片上
-      // 這樣可以確保 body/footer 正常顯示在同一個 bubble
-      const action = videoUrl
-        ? { type: "uri", label: "播放影片", uri: videoUrl }
-        : heroVideo.action
-          ? actionToFlex(heroVideo.action, undefined, docId, token, liffId)
-          : undefined;
-
+    if (videoUrl && previewUrl) {
+      // 使用 LINE 官方 video component 格式
       hero = {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          // 背景圖片
-          {
-            type: "image",
-            url: previewUrl,
-            size: "full",
-            aspectRatio: heroVideo.ratio || "16:9",
-            aspectMode: "cover",
-          },
-          // 播放按鈕（置中疊加）
-          {
-            type: "box",
-            layout: "vertical",
-            contents: [
-              {
-                type: "box",
-                layout: "vertical",
-                contents: [
-                  {
-                    type: "text",
-                    text: "▶",
-                    size: "3xl",
-                    color: "#FFFFFF",
-                    align: "center",
-                    gravity: "center",
-                  },
-                ],
-                width: "60px",
-                height: "60px",
-                backgroundColor: "#00000080",
-                cornerRadius: "30px",
-                justifyContent: "center",
-                alignItems: "center",
-              },
-            ],
-            position: "absolute",
-            offsetTop: "0px",
-            offsetBottom: "0px",
-            offsetStart: "0px",
-            offsetEnd: "0px",
-            justifyContent: "center",
-            alignItems: "center",
-          },
-        ],
-        paddingAll: "0px",
-        action,
+        type: "video",
+        url: videoUrl,
+        previewUrl: previewUrl,
+        aspectRatio: heroVideo.ratio || "16:9",
       };
     }
   } else if (heroImg) {
