@@ -11,6 +11,7 @@ import { DocModel, FooterButton, ImageSource, SpecialSection, BubbleSize } from 
 import { uid, autoTextColor } from "@/lib/utils";
 import { seedSpecialSection } from "@/lib/templates";
 import { validateDoc } from "@/lib/validate";
+import { extractVideoFrame } from "@/lib/extractVideoFrame";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -521,12 +522,30 @@ export default function EditDraft() {
                       if (!file) return;
                       if (file.size > 200 * 1024 * 1024) return alert(`影片檔案過大，請小於 200 MB\n目前大小：${(file.size / 1024 / 1024).toFixed(1)} MB`);
                       try {
+                        // 1. 上傳影片
                         const ext = file.name.split(".").pop();
                         const path = `${uid("video_")}.${ext}`;
                         const { error } = await supabase.storage.from("flex-assets").upload(path, file);
                         if (error) return alert("上傳失敗：" + error.message);
                         const { data: { publicUrl } } = supabase.storage.from("flex-assets").getPublicUrl(path);
-                        await updateHeroVideoSource(publicUrl, heroVideo.video?.previewUrl || "", path, heroVideo.video?.kind === "upload" ? heroVideo.video.previewAssetId : "");
+
+                        // 2. 自動擷取第一幀作為預覽圖
+                        let previewUrl = heroVideo.video?.previewUrl || "";
+                        let previewAssetId = heroVideo.video?.kind === "upload" ? heroVideo.video.previewAssetId : "";
+                        try {
+                          const frameBlob = await extractVideoFrame(publicUrl, 0.1);
+                          const previewPath = `${uid("preview_")}.jpg`;
+                          const { error: previewError } = await supabase.storage.from("flex-assets").upload(previewPath, frameBlob, { contentType: "image/jpeg" });
+                          if (!previewError) {
+                            const { data: { publicUrl: previewPublicUrl } } = supabase.storage.from("flex-assets").getPublicUrl(previewPath);
+                            previewUrl = previewPublicUrl;
+                            previewAssetId = previewPath;
+                          }
+                        } catch (frameErr) {
+                          console.warn("自動擷取預覽圖失敗，請手動上傳：", frameErr);
+                        }
+
+                        await updateHeroVideoSource(publicUrl, previewUrl, path, previewAssetId);
                       } catch (err: any) {
                         alert("上傳錯誤：" + err.message);
                       }
