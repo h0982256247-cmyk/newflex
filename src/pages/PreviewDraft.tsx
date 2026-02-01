@@ -75,7 +75,6 @@ export default function PreviewDraft() {
                 catch (e: any) { setMsg(e.message === "NOT_PUBLISHABLE" ? "目前不可發布：請修正錯誤或改用上傳圖片。" : "發布失敗"); }
                 finally { setBusy(false); }
               }}>{active ? "重發（新版本）" : "產生分享連結"}</button>
-              <button className="glass-btn glass-btn--secondary" disabled={busy} onClick={() => window.location.reload()}>重新整理</button>
             </div>
 
             {active ? (

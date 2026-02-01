@@ -1222,7 +1222,6 @@ export default function EditDraft() {
 
           <div className="sticky bottom-4">
             <div className="glass-panel p-3 flex gap-2">
-              <button className="glass-btn glass-btn--secondary flex-1" onClick={async () => { await flushSave(); nav(`/drafts/${id}/preview`); }}>預覽</button>
               <button className="glass-btn flex-1" onClick={async () => { await flushSave(); nav(`/drafts/${id}/preview`); }}>下一步</button>
             </div>
             <div className="mt-2 text-xs opacity-70">{report.errors.length ? `❌ 有 ${report.errors.length} 個錯誤` : report.warnings.length ? `⚠️ 有 ${report.warnings.length} 個警告` : "✅ 可發布"}</div>
