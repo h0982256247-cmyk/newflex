@@ -71,8 +71,9 @@ export default function FlexPreview({ doc, flex, selectedIndex, onIndexChange }:
         {root.contents.map((bubble: any, i: number) => (
           <div
             key={i}
-            className={`min-w-[280px] max-w-[280px] snap-center flex-shrink-0 cursor-pointer transition-all duration-200 ${selectedIndex === i ? "ring-2 ring-blue-400 ring-offset-2 rounded-[18px]" : "hover:opacity-90"
-              }`}
+            className={`min-w-[280px] max-w-[280px] snap-center flex-shrink-0 cursor-pointer transition-all duration-200 ${
+              selectedIndex === i ? "ring-2 ring-blue-400 ring-offset-2 rounded-[18px]" : "hover:opacity-90"
+            }`}
             onClick={() => handleCardClick(i)}
           >
             <FlexBubble bubble={bubble} />
@@ -106,6 +107,7 @@ function FlexBubble({ bubble }: { bubble: any }) {
           className="w-full bg-gray-100 overflow-hidden"
           style={{
             aspectRatio: cssAspectRatio,
+            maxHeight: "400px"
           }}
         >
           <img
@@ -126,6 +128,7 @@ function FlexBubble({ bubble }: { bubble: any }) {
           className="w-full bg-gray-100 overflow-hidden relative group cursor-pointer"
           style={{
             aspectRatio: cssAspectRatio,
+            maxHeight: "400px"
           }}
         >
           <img
