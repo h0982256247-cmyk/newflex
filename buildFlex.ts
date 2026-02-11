@@ -6,7 +6,7 @@ function sizeMap(s: SizeToken): string {
 }
 
 function buildLiffShareUrl(docId?: string) {
-  const liffId = import.meta.env.VITE_LIFF_ID || "YOUR_LIFF_ID";
+  const liffId = import.meta.env.VITE_LIFF_ID || "2008683036-usTu9LoY";
   const targetId = docId || "PREVIEW_MODE";
 
   // ✅ 讓「電腦 Chrome」也能走得通的關鍵：
