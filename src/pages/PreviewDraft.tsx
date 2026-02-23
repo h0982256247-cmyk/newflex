@@ -66,15 +66,27 @@ export default function PreviewDraft() {
 
           <div className="glass-panel p-4">
             <div className="font-semibold">發布（固定版本）</div>
-            <div className="mt-2 text-sm opacity-70">重發會產生新版本，舊連結自動停用。</div>
+            <div className="mt-3 flex items-start gap-2 p-3 rounded-lg" style={{ background: 'rgba(139,0,0,0.06)', border: '1px solid rgba(139,0,0,0.18)' }}>
+              <span className="mt-0.5 shrink-0">⚠️</span>
+              <span className="text-sm leading-relaxed" style={{ color: '#374151' }}>
+                如有任何修改，請點選下方按鈕「<strong style={{ color: '#8B0000' }}>重發</strong>」。重發會產生新版本，舊版本連結會自動失效。
+              </span>
+            </div>
             {msg ? <div className="mt-2 text-sm text-red-600">{msg}</div> : null}
             <div className="mt-4 flex gap-2">
-              <button className="glass-btn flex-1" disabled={!gate.ok || busy} onClick={async () => {
-                setMsg(null); setBusy(true);
-                try { await publishDoc(id); setActive(await getActiveShareForDoc(id)); }
-                catch (e: any) { setMsg(e.message === "NOT_PUBLISHABLE" ? "目前不可發布：請修正錯誤或改用上傳圖片。" : "發布失敗"); }
-                finally { setBusy(false); }
-              }}>{active ? "重發（新版本）" : "產生分享連結"}</button>
+              <button
+                className="flex-1 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: (!gate.ok || busy) ? '#aaa' : '#8B0000' }}
+                disabled={!gate.ok || busy}
+                onMouseEnter={e => { if (gate.ok && !busy) (e.currentTarget.style.background = '#a00000'); }}
+                onMouseLeave={e => { if (gate.ok && !busy) (e.currentTarget.style.background = '#8B0000'); }}
+                onClick={async () => {
+                  setMsg(null); setBusy(true);
+                  try { await publishDoc(id); setActive(await getActiveShareForDoc(id)); }
+                  catch (e: any) { setMsg(e.message === "NOT_PUBLISHABLE" ? "目前不可發布：請修正錯誤或改用上傳圖片。" : "發布失敗"); }
+                  finally { setBusy(false); }
+                }}
+              >{active ? "重發（新版本）" : "產生分享連結"}</button>
             </div>
 
             {active ? (
