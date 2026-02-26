@@ -5,28 +5,30 @@ function sizeMap(s: SizeToken): string {
   return s;
 }
 
-function buildShareUrl(token?: string, docId?: string, liffId?: string) {
+function buildShareUrl(token?: string, docId?: string, liffId?: string, baseUrl?: string) {
+  const appBaseUrl = baseUrl || 'https://mgm.gentlerdigit.com';
+
   // 有 token 且有 liffId 時使用 LIFF URL 格式（自動觸發分享）
   if (token && liffId) {
     return `https://liff.line.me/${liffId}?token=${token}&autoshare=1`;
   }
   // 有 token 時使用正式分享連結格式
   if (token) {
-    return `https://linemgm.com/share?token=${token}`;
+    return `${appBaseUrl}/share?token=${token}`;
   }
   // 預覽模式：使用 docId
   if (docId) {
-    return `https://linemgm.com/share?id=${docId}`;
+    return `${appBaseUrl}/share?id=${docId}`;
   }
-  return "https://linemgm.com/share";
+  return `${appBaseUrl}/share`;
 }
 
-function actionToFlex(a: Action, label?: string, docId?: string, token?: string, liffId?: string) {
+function actionToFlex(a: Action, label?: string, docId?: string, token?: string, liffId?: string, baseUrl?: string) {
   const common = label ? { label } : {};
   if (a.type === "uri") return { type: "uri", uri: a.uri, ...common };
   if (a.type === "message") return { type: "message", text: a.text, ...common };
   if (a.type === "share") {
-    return { type: "uri", uri: buildShareUrl(token, docId, liffId), ...common };
+    return { type: "uri", uri: buildShareUrl(token, docId, liffId, baseUrl), ...common };
   }
   return { type: "uri", uri: "https://example.com", ...common };
 }
@@ -38,7 +40,7 @@ function safeHttpsUrl(url?: string) {
   return url;
 }
 
-function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: string, token?: string, liffId?: string) {
+function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: string, token?: string, liffId?: string, baseUrl?: string) {
   const heroImg = section.hero.find((x: any) => x.enabled && x.kind === "hero_image") as any | undefined;
   const heroVideo = section.hero.find((x: any) => x.enabled && x.kind === "hero_video") as any | undefined;
 
@@ -112,7 +114,7 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
           { type: "text", text: c.value, size: "sm", color: "#111111", flex: 5, wrap: true },
         ],
       };
-      if (c.action) row.action = actionToFlex(c.action, undefined, docId, token, liffId);
+      if (c.action) row.action = actionToFlex(c.action, undefined, docId, token, liffId, baseUrl);
       bodyContents.push(row);
     }
 
@@ -183,7 +185,7 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
   return bubble;
 }
 
-function specialSectionToBubble(section: SpecialSection, bubbleSize: BubbleSize, docId?: string, token?: string, liffId?: string) {
+function specialSectionToBubble(section: SpecialSection, bubbleSize: BubbleSize, docId?: string, token?: string, liffId?: string, baseUrl?: string) {
   const imageUrl = safeHttpsUrl(section.image?.url) || "https://placehold.co/600x900/png";
 
   // Build overlay body contents
@@ -222,7 +224,7 @@ function specialSectionToBubble(section: SpecialSection, bubbleSize: BubbleSize,
           { type: "text", text: c.value, size: "sm", color: "#FFFFFF", flex: 5, wrap: true },
         ],
       };
-      if (c.action) row.action = actionToFlex(c.action, undefined, docId, token, liffId);
+      if (c.action) row.action = actionToFlex(c.action, undefined, docId, token, liffId, baseUrl);
       overlayContents.push(row);
     }
 
@@ -290,7 +292,7 @@ function isSpecialSection(section: CardSection): section is SpecialSection {
   return (section as SpecialSection).kind === "special";
 }
 
-export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?: string) {
+export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?: string, baseUrl?: string) {
   if (doc.type === "folder") {
     return { type: "flex", altText: "Folder", contents: { type: "bubble", body: { type: "box", layout: "vertical", contents: [] } } };
   }
@@ -301,7 +303,7 @@ export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?
     return {
       type: "flex",
       altText: doc.title || "Flex Message",
-      contents: sectionToBubble(doc.section, bubbleSize, docId, token, liffId),
+      contents: sectionToBubble(doc.section, bubbleSize, docId, token, liffId, baseUrl),
     };
   }
 
@@ -315,9 +317,9 @@ export function buildFlex(doc: DocModel, docId?: string, token?: string, liffId?
       type: "carousel",
       contents: cards.map((c) => {
         if (isSpecialSection(c.section)) {
-          return specialSectionToBubble(c.section, bubbleSize, docId, token, liffId);
+          return specialSectionToBubble(c.section, bubbleSize, docId, token, liffId, baseUrl);
         }
-        return sectionToBubble(c.section, bubbleSize, docId, token, liffId);
+        return sectionToBubble(c.section, bubbleSize, docId, token, liffId, baseUrl);
       }),
     },
   };
