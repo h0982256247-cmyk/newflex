@@ -814,7 +814,6 @@ export default function EditDraft() {
                                 setSection({ ...section, footer: next });
                               }}>
                                 <option value="uri">開啟網址</option>
-                                <option value="message">傳送文字</option>
                                 <option value="share">分享好友</option>
                               </select>
                             </div>
@@ -1164,7 +1163,6 @@ export default function EditDraft() {
                                 setSection({ ...section, footer: next });
                               }}>
                                 <option value="uri">開啟網址</option>
-                                <option value="message">傳送文字</option>
                                 <option value="share">分享好友</option>
                               </select>
                             </div>
