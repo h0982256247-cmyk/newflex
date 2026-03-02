@@ -76,6 +76,10 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
         aspectRatio: heroImg.ratio || "20:13",
         aspectMode: heroImg.mode || "cover",
       };
+      // 加入圖片點擊動作
+      if (heroImg.action) {
+        hero.action = actionToFlex(heroImg.action, undefined, docId, token, liffId, baseUrl);
+      }
     }
   }
 
@@ -170,14 +174,17 @@ function sectionToBubble(section: Section, bubbleSize: BubbleSize, docId?: strin
     size: bubbleSize,
   };
 
-  bubble.body = {
-    type: "box",
-    layout: "vertical",
-    spacing: "md",
-    contents: bodyContents,
-    backgroundColor: section.styles?.body?.backgroundColor,
-    paddingAll: "20px",
-  };
+  // 只在有內容時才加入 body，避免空白卡片有留白
+  if (bodyContents.length > 0) {
+    bubble.body = {
+      type: "box",
+      layout: "vertical",
+      spacing: "md",
+      contents: bodyContents,
+      backgroundColor: section.styles?.body?.backgroundColor,
+      paddingAll: "20px",
+    };
+  }
 
   if (hero) bubble.hero = hero;
   if (footer) bubble.footer = footer;

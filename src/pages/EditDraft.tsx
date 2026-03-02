@@ -936,6 +936,114 @@ export default function EditDraft() {
                       <option value="1:1">1:1 (正方形)</option>
                     </select>
                   </div>
+
+                  {/* 圖片點擊動作設定 */}
+                  <div className="mt-4 p-3 glass-panel">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="glass-label">圖片點擊動作</div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded"
+                          checked={(() => {
+                            const heroArr = (section as any).hero || [];
+                            const heroImage = heroArr.find((c: any) => c.kind === "hero_image");
+                            return !!heroImage?.action;
+                          })()}
+                          onChange={(e) => {
+                            const heroArr = (section as any).hero || [];
+                            const hero = heroArr.map((c: any) =>
+                              c.kind === "hero_image"
+                                ? { ...c, action: e.target.checked ? { type: "uri", uri: "" } : undefined }
+                                : c
+                            );
+                            setSection({ ...section, hero });
+                          }}
+                        />
+                        <span className="text-sm">啟用</span>
+                      </label>
+                    </div>
+
+                    {(() => {
+                      const heroArr = (section as any).hero || [];
+                      const heroImage = heroArr.find((c: any) => c.kind === "hero_image");
+                      if (!heroImage?.action) return null;
+
+                      return (
+                        <div className="space-y-3">
+                          <div>
+                            <div className="glass-label mb-2">動作類型</div>
+                            <select
+                              className="glass-input"
+                              value={heroImage.action.type}
+                              onChange={(e) => {
+                                const type = e.target.value as any;
+                                const hero = heroArr.map((c: any) =>
+                                  c.kind === "hero_image"
+                                    ? {
+                                        ...c,
+                                        action:
+                                          type === "uri"
+                                            ? { type: "uri", uri: "" }
+                                            : { type: "share", uri: "" },
+                                      }
+                                    : c
+                                );
+                                setSection({ ...section, hero });
+                              }}
+                            >
+                              <option value="uri">開啟網址</option>
+                              <option value="share">分享好友</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <div className="glass-label mb-2">
+                              {heroImage.action.type === "uri" ? "URL 連結" : "分享連結（自動填入）"}
+                            </div>
+                            <input
+                              className={`glass-input ${
+                                heroImage.action.type === "share"
+                                  ? "bg-gray-100 opacity-60 cursor-not-allowed"
+                                  : ""
+                              }`}
+                              disabled={heroImage.action.type === "share"}
+                              value={
+                                heroImage.action.type === "uri"
+                                  ? heroImage.action.uri || ""
+                                  : shareUrl || "尚未發布，請先至預覽頁發布"
+                              }
+                              onChange={(e) => {
+                                if (heroImage.action.type === "share") return;
+                                const hero = heroArr.map((c: any) =>
+                                  c.kind === "hero_image"
+                                    ? { ...c, action: { type: "uri", uri: e.target.value } }
+                                    : c
+                                );
+                                setSection({ ...section, hero });
+                              }}
+                              placeholder="https://example.com"
+                            />
+                            {heroImage.action.type === "uri" && (
+                              <div className="mt-1 text-xs opacity-70">
+                                僅支援 https://、line://、liff://
+                              </div>
+                            )}
+                            {heroImage.action.type === "share" && !shareUrl && (
+                              <div className="mt-1 text-xs text-amber-600">
+                                請先至「預覽與發布」頁面發布後，連結會自動顯示
+                              </div>
+                            )}
+                            {heroImage.action.type === "share" && shareUrl && (
+                              <div className="mt-1 text-xs text-green-600">
+                                已發布 v{activeShare?.version_no}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               </AccordionSection>
 
